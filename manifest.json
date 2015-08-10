@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "ContentPass",
+  "version": "1.0.0",
+  "description": "ContentPass is a way to pay websites/webpages directly for content you value.",
+  "content_scripts": 
+  [
+    {
+      "matches": ["*://*/*"],
+      "js": ["js/content_script.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "scripts": ["js/jquery-2.1.4.min.js", "js/extension_script.js"],
+    "persistent": true
+  },
+  "browser_action": {
+    "default_icon": {                    // optional
+      "19": "images/icon19.png"           // optional
+      // "38": "images/icon38.png"            // optional
+    },
+    "default_title": "ContentPass",      // optional; shown in tooltip
+      "default_popup": "html/popup.html"        // optional
+  },
+  "permissions": [
+    "storage"
+  ]
+}
