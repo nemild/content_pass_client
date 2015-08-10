@@ -1,1 +1,1 @@
-chrome.runtime.sendMessage({message: "page loaded"})
+chrome.runtime.sendMessage({message: "page loaded"});

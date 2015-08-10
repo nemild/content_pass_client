@@ -21,9 +21,10 @@
       // "38": "images/icon38.png"            // optional
     },
     "default_title": "ContentPass",      // optional; shown in tooltip
-      "default_popup": "html/popup.html"        // optional
+    "default_popup": "html/popup.html"        // optional
   },
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ]
 }
