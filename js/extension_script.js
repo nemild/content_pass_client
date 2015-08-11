@@ -100,6 +100,9 @@ function login(email, password, callback) {
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
 
+// TODO: still sends stuff even if the user isn't logged in,
+// And doesn't include real id in posts
+
     if (request.message == "login") {
       var email = request.email;
       var password = request.password;
