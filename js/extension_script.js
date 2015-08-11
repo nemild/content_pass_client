@@ -82,8 +82,34 @@ function set_weight(url, multiplier) {
   post_pageview(url, multiplier);
 }
 
+function login(email, password, callback) {
+  // $.ajax({
+  //   url:"http://9fe57540.ngrok.io/pageview",
+  //   type:"POST",
+  //   data:data,
+  //   contentType:"application/json",
+  //   dataType:"json",
+  //   success: function() {
+  //     console.log("woohooooo");
+  //   }
+  // });
+  
+  callback(id)
+}
+
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
+
+    if (request.message == "login") {
+      var email = request.email;
+      var password = request.password;
+      login(email, password, function (id) {
+        localStorage['id'] = id
+        sendResponse({id: id});  
+      });
+      return;
+    }
+
     var url;
     if (request.message == "page loaded") {
       url = sender.tab.url;
