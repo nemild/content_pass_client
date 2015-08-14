@@ -86,20 +86,7 @@ function set_weight(url, multiplier) {
   }
 }
 
-function login(email, password, callback) {
-  // $.ajax({
-  //   url:"http://9fe57540.ngrok.io/pageview",
-  //   type:"POST",
-  //   data:data,
-  //   contentType:"application/json",
-  //   dataType:"json",
-  //   success: function() {
-  //     console.log("woohooooo");
-  //   }
-  // });
-  
-  callback(id)
-}
+
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
@@ -107,12 +94,31 @@ chrome.runtime.onMessage.addListener(
 // TODO: still sends stuff even if the user isn't logged in,
 // And doesn't include real id in posts
 
+    function login(email, password, callback) {
+      var data = JSON.stringify({"email": email, "password":password})
+      $.ajax({
+        url:"https://content-pass.herokuapp.com/api/v1/sessions",
+        type:"POST",
+        data:data,
+        contentType:"application/json",
+        dataType:"json"
+      }).done(function(data, textStatus, jqXHR) {
+        console.log("woohooooo");
+        console.log(data + textStatus + jqXHR)
+        callback(data.uuid)
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+          console.log("boohoooo")
+          console.log(jqXHR + textStatus + errorThrown)
+        });
+    }
+
     if (request.message == "login") {
       var email = request.email;
       var password = request.password;
-      login(email, password, function (id) {
-        localStorage['id'] = id
-        sendResponse({id: id});  
+      login(email, password, function (uuid) {
+        console.log(sendResponse);
+        localStorage['id'] = uuid;
+        sendResponse({id: uuid});
       });
       return;
     }
@@ -123,21 +129,24 @@ chrome.runtime.onMessage.addListener(
     } else {
       url = request.url;
     }
-// TODO: send 5x stuff even if the URL isn't currently in top 150
-    if (urlInTop150(url)) {
-      switch (request.message) {
-        case "page loaded":
-          set_weight(url, 1)
-          break;
-        case "0x":
-          set_weight(url, 0);
-          break;
-        case "1x":
-          set_weight(url, 1);
-          break;
-        case "5x":
-          set_weight(url, 5);
-          break;
-      }
+
+    switch (request.message) {
+      case "page loaded":
+        if (urlInTop150) {
+          set_weight(url, 1)  
+        }
+        break;
+      case "0X":
+        set_weight(url, 0);
+        sendResponse({hello: "world"});
+        break;
+      case "1X":
+        set_weight(url, 1);
+        sendResponse({hello: "world"});
+        break;
+      case "5X":
+        set_weight(url, 5);
+        sendResponse({hello: "world"});
+        break;
     }
   });

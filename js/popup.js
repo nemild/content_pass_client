@@ -1,34 +1,56 @@
-var drop_down = document.getElementById('multiplier_selector');
-var login_form = document.forms["login"];
+var drop_down
+var login_form
+$(document).ready(function() {
 
-drop_down.addEventListener("change", multiplier_selected);
-login_form.addEventListener("submit", login);
+  drop_down = document.getElementById('multiplier_selector');
+  login_form = document.forms["login"];
 
-// if (localStorage['id']) {
-//   login_form.style.display='none';
-//   drop_down.style.display='initial';
-// } else {
-//   drop_down.style.display='none'; 
-//   login_form.style.display='initial'; 
-// }
+  login_form.addEventListener("submit", login);
 
-function login() {
-  var email = login_form["usermail"].value;
-  var password = login_form["password"].value;
-  chrome.runtime.sendMessage({message: "login", email:email, password:password}, function(response) {
-    console.log(response);
-    window.location.reload(false); 
+  if (localStorage['id']) {
+    configureLoggedInState();
+  } else {
+    configureLoggedOutState();
+  }
+
+
+  $('.content_pass_single_action').click(function() {
+    if(!$(this).hasClass('selected')) {
+      $('.content_pass_single_action').removeClass('selected');
+      $(this).addClass('selected');
+
+      // Add setting code here
+      var multiplier = $(this).text();
+
+      // Grab URL
+      chrome.tabs.query({
+        'active': true,
+        'currentWindow': true
+      }, function (tabs) {
+        chrome.runtime.sendMessage({message: multiplier, url: tabs[0].url}, function (response) {
+          console.log('received callback from multiplier update:' + response);
+        });
+      }); 
+    }
   });
-  
-}
 
-function multiplier_selected(event) {
-  chrome.tabs.query({
-    'active': true,
-    'currentWindow': true
-  }, function (tabs) {
-    var multiplier = event.srcElement.value + 'x';
-    chrome.runtime.sendMessage({message: multiplier, url: tabs[0].url});
+  function configureLoggedInState() {
+    login_form.style.display='none';
+    drop_down.style.display='initial';
+  }
 
-  });  
-}
+  function configureLoggedOutState() {
+    drop_down.style.display='none'; 
+    login_form.style.display='initial'; 
+  }
+
+  function login(e) {
+    console.log("login, yo")
+    e.preventDefault()
+    var email = login_form["usermail"].value;
+    var password = login_form["password"].value;
+    chrome.runtime.sendMessage({message: "login", email:email, password:password}, function (response) {
+        configureLoggedInState();  
+    });
+  }
+});
