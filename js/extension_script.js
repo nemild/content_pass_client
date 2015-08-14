@@ -1,5 +1,5 @@
 const num_pages = 5;
-const update_url = 
+// const update_url = 
 
 downloadAllPages();
 // Get all URLs every 10 minutes
@@ -64,9 +64,11 @@ function urlInTop150(url) {
 }
 
 function post_pageview(url, multiplier) {
-  var data =JSON.stringify({"uid":"12345", "url":url, "weight":multiplier})
+  var uuid = localStorage['id']
+// TODO: check to make sure that's there
+  var data =JSON.stringify({"uuid":uuid, "url":url, "weight":multiplier})
   $.ajax({
-    url:"http://9fe57540.ngrok.io/pageview",
+    url:"https://content-pass.herokuapp.com/api/v1/page_views",
     type:"POST",
     data:data,
     contentType:"application/json",
@@ -78,8 +80,10 @@ function post_pageview(url, multiplier) {
 }
 
 function set_weight(url, multiplier) {
-  localStorage[url] = multiplier;
-  post_pageview(url, multiplier);
+  if (localStorage[url] != multiplier) {
+    localStorage[url] = multiplier;
+    post_pageview(url, multiplier);  
+  }
 }
 
 function login(email, password, callback) {
@@ -119,12 +123,11 @@ chrome.runtime.onMessage.addListener(
     } else {
       url = request.url;
     }
+// TODO: send 5x stuff even if the URL isn't currently in top 150
     if (urlInTop150(url)) {
       switch (request.message) {
         case "page loaded":
-          if (!localStorage[url]) {
-            post_pageview(url, 1);  
-          }
+          set_weight(url, 1)
           break;
         case "0x":
           set_weight(url, 0);
