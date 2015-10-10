@@ -1,85 +1,75 @@
 <!DOCTYPE html>
-<!-- <html>
+<html lang='en'>
   <head>
+    <meta charset="utf-8">
+    <link href='http://fonts.googleapis.com/css?family=Dancing+Script' rel='stylesheet' type='text/css'>
+    <link rel='stylesheet' type='text/css' href='../css/main.css'>
   </head>
 
   <body>
-    <select id="multiplier_selector">
-      <option value="0">0x</option>
-      <option value="1" selected="selected">1x</option>
-      <option value="5">5x</option>
-    </select>
-
-    <section class="loginform cf" id="login_form">
-      <form name="login" accept-charset="utf-8" id="login_form">
-        <label for="usermail">Email</label>
-        <input type="email" name="usermail" placeholder="yourname@email.com" required>
-        <label for="password">Password</label>
-        <input type="password" name="password" placeholder="password" required>
-        <input type="submit" id="submit_button">
-      </form>
+    <div class='logo logo-heading'>ContentPass</div>
+    <section id='logged_in_frame'>
+      <ul class="content_pass_actions_frame" id="multiplier_selector">
+        <li class="content_pass_single_action">0X</li>
+        <li class="content_pass_single_action selected">1X</li>
+        <li class="content_pass_single_action">5X</li>
+      </ul>
+      <div id='updated_indicator_frame'>
+        <div id='updated_indicator'></div>
+        <div id='updated_indicator_error'></div>
+      </div>
+      <div id='last_updated_frame'>
+        <div class='header'>HN Top Posts Last Updated</div>
+        <div id='last_updated_data'></div>
+      </div>
     </section>
-    <script type="text/javascript" src="../js/popup.js"></script>
 
+    <section class="loginform cf">
+      <form name="login" accept-charset="utf-8" id="login_form">
+        <div id='login-flash' class='flash'></div>
+        <label for="usermail" style='font-weight:bold; font-size:16px; margin-top:9px;border-radius:5px;display:block;'>Email</label>
+        <input type="email" name="usermail" placeholder="Email" style='font-size:24px; padding:7px;' class='form-control' required='required'>
+        <label for="password" style='font-weight:bold; font-size:16px; margin-top:9px;border-radius:5px;display:block;' required='required'>Password</label>
+        <input type="password" name="password" placeholder="Password" required style='font-size:24px; padding:7px;' class='form-control'>
+        <div style='text-align:center;'><input type="submit" id="submit_button" class='btn btn-primary btn-lg login-button' value='Login'></div>
+      </form>
+      <div class='loading-frame'>
+        <img class='loading' id='login_loading' src='../images/loading.gif' />
+      </div>
+    </section>
+
+    <div id='tutorial-frame'>
+      <div id='part1' class='part'>
+        <div class='logo logo-heading'>ContentPass</div>
+        <div class='tutorial-body'>ContentPass automatically tracks the top HN sites you visit. Everytime you visit a site in the HN top 150, we'll be notified.</div>
+        <div class='btn btn-primary tutorial-next-button' data-next-target='part2' data-current-target='part1'>Next</div>
+      </div>
+      <div id='part2' class='part'>
+        <div class='logo logo-heading'>ContentPass</div>
+        <div class='tutorial-body'>We'll spread a weekly payment across those sites (at least the ones we can find payment data for). The daily counter will go up when a site's been recorded.</div>
+        <div class='btn btn-primary tutorial-next-button' data-next-target='part3' data-current-target='part2'>Next</div>
+      </div>
+      <div id='part3' class='part'>
+        <div class='logo logo-heading'>ContentPass</div>
+        <div class='tutorial-body'>If you don't want to report your HN reading at anytime, just log out, go into incognito mode, or 0X a site. Ready to get started?</div>
+        <div class='btn btn-primary tutorial-next-button' data-next-target='' data-current-target='part3'>Next</div>
+      </div>
+    </div>
+
+    <footer class='links'>
+      <a href='https://content-pass.herokuapp.com/dashboard' target='_blank'>Dashboard</a>
+      &nbsp;
+      <span id='logout'>Logout</span>
+      <br />
+      <a href='https://content-pass.herokuapp.com/' target='_blank'>Learn more</a>
+      <br />
+      <a href='mailto:nemild@gmail.com?subject=ContentPass%20Feedback' target='_blank'>Feedback</a>
+      <div class='loading-frame'>
+        <img class='loading' id='loggedin_loading' src='../images/loading.gif'>
+        </div>
+    </footer>
+
+    <script type="text/javascript" src="../js/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="../js/precompiled/popup.js"></script>
   </body>
-</html>
-
- -->
-
-<html>
-
-<head>
-<style type="text/css">
-.content_pass_actions_frame {
-  list-style:none;
-}
-
-.content_pass_single_action {
-  width:30px;
-  height:30px;
-  text-align:center;
-  font-size: 25px;
-  color:#000;
-  background-color: #fff;
-  padding: 7px;
-  text-shadow: 1px 1px 1px #999;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  display:inline-block;
-  border-radius: 5px;
-  transition: all 1s linear;
-  cursor:pointer;
-}
-
-/*.content_pass_single_action:hover {
-  background-color:#fbc3ab;
-}
-
-*/
-.selected {
-  color:#000;
-  background-color:#f45915;
-}
-</style>
-</head>
-
-<body>
-  <ul class="content_pass_actions_frame" id="multiplier_selector">
-    <li class="content_pass_single_action">0X</li>
-    <li class="content_pass_single_action selected">1X</li>
-    <li class="content_pass_single_action">5X</li>
-  </ul>
-
-  <section class="loginform cf" id="login_form">
-      <form name="login" accept-charset="utf-8" id="login_form">
-        <label for="usermail">Email</label>
-        <input type="email" name="usermail" placeholder="email" required>
-        <label for="password">Password</label>
-        <input type="password" name="password" placeholder="password" required>
-        <input type="submit" id="submit_button">
-      </form>
-    </section>
-
-  <script type="text/javascript" src="../js/jquery-2.1.4.min.js"></script>
-  <script type="text/javascript" src="../js/popup.js"></script>
-</body>
 </html>

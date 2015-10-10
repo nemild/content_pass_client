@@ -3,7 +3,7 @@
   "name": "ContentPass",
   "version": "1.0.0",
   "description": "ContentPass is a way to pay websites/webpages directly for content you value.",
-  "content_scripts": 
+  "content_scripts":
   [
     {
       "matches": ["*://*/*"],
@@ -12,12 +12,12 @@
     }
   ],
   "background": {
-    "scripts": ["js/jquery-2.1.4.min.js", "js/extension_script.js"],
+    "scripts": ["js/jquery-2.1.4.min.js", "js/precompiled/extension_script.js", "js/precompiled/UrlVariation.js"],
     "persistent": true
   },
   "browser_action": {
     "default_icon": {                    // optional
-      "19": "images/icon19.png"           // optional
+      "19": "images/icon20.png"           // optional
       // "38": "images/icon38.png"            // optional
     },
     "default_title": "ContentPass",      // optional; shown in tooltip
