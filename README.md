@@ -1,10 +1,10 @@
-# ContentPass Client (Google Chrome)
+# [ContentPass](https://content-pass.herokuapp.com) Client (Google Chrome)
 **ContentPass is in early alpha**
 
 ### Overview
 ![Screenshot](screenshot.png)
 
-ContentPass is an idea to let readers pay writers automatically for the sites they visit. Initially, we're testing it out in the [Hacker News](https://news.ycombinator.com) community. While it doesn't solicit money right now, over time, you would select a monthly budget - and the money would be automatically amoritized across the relevant top Hacker News sites that you visit.
+[ContentPass](https://content-pass.herokuapp.com) is an idea to let readers pay writers automatically for the sites they visit. Initially, we're testing it out in the [Hacker News](https://news.ycombinator.com) community. While it doesn't solicit money right now, over time, you would select a monthly budget - and the money would be automatically amoritized across the relevant top Hacker News sites that you visit.
 
 ContentPass Client (this repo) is a Google Chrome extension that works with ContentPass. It lets you sign in, submits relevant sites to our server, and change the weights of sites that you've visited.
 
