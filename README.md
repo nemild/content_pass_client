@@ -7,6 +7,13 @@
 
 ContentPass Client is a Google Chrome extension that works with ContentPass. It lets you sign in, submits relevant sites to our server, and change the weights of sites that you've visited.
 
+### Installation
+1. In Google Chrome, navigate to `chrome://extensions`
+2. Check the top right box that says Developer Mode
+3. Click the button at top left that says *Load Unpacked Extension*
+4. Point the root directory of this repo
+5. Look for the *CO* icon on the right side of your Google Chrome toolbar
+
 
 ### Developers
 #### Getting started
