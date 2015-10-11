@@ -1,6 +1,6 @@
 // Server Constants
-// const BASE_SERVER_URL = 'https://content-pass.herokuapp.com/';
-const BASE_SERVER_URL = 'http://localhost:3000/'
+const BASE_SERVER_URL = 'https://content-pass.herokuapp.com/';
+// const BASE_SERVER_URL = 'http://localhost:3000/'
 const PAGE_VIEW_RELATIVE_URL = 'api/v1/page_views';
 const LOGIN_RELATIVE_URL = 'api/v1/sessions';
 
@@ -24,7 +24,7 @@ const HN_INTERVAL_ID = PROVIDER_SLUG + 'interval_id'
 
 // Icons
 const PATH_FOR_POSTED_ICON =  '../images/icon20.png';
-const PATH_FOR_DEFAULT_ICON = '../images/icon19.png';
+const PATH_FOR_DEFAULT_ICON = '../images/icon20.png';
 
 // Globals
 let last_updated_id = null;
