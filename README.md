@@ -9,10 +9,12 @@ ContentPass Client is a Google Chrome extension that works with ContentPass. It 
 
 ### Installation
 First, compile the source files to ES5 Javascript:
+
 1. Install the babel ES 2015 transpiler (`npm install -g babel`)
 2. Run the compile script (`./compile.sh`); this will watch for any changes to the source files and automatically recompile (Ctrl-C out if you just want to run once)
 
 Then add to Google Chrome:
+
 1. In Google Chrome, navigate to `chrome://extensions`
 2. Check the top right box that says Developer Mode
 3. Click the button at top left that says *Load Unpacked Extension*
