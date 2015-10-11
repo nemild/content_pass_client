@@ -6,6 +6,9 @@
 
 ContentPass Client is a Google Chrome extension that works with ContentPass. It lets you sign in, submits relevant sites to our server, and change the weights of sites that you've visited.
 
+Screenshot
+![Screenshot](./screenshot.png)
+
 ### Developers
 #### Getting started
 *File Structure*
