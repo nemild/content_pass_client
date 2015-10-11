@@ -191,7 +191,10 @@ body {
 }
 
 #updated_indicator_frame {
-  height:15px;
+  padding-top:10px;
+  height:5px;
+  padding-bottom:15px;
+  display:none;
 }
 
 .loading-frame {

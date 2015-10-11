@@ -14,7 +14,7 @@ ContentPass Client is a Google Chrome extension that works with ContentPass. It 
   - `extension_script.js`: Backend logic
   - `UrlVariation.js`: Library to generate variations of a given URL (http, https, with/without query parameters)
 - `html/`, `css/`, `images/`: HTML, CSS, and images
-- `js/precompiled`: All compiled files are output here when run through the `compile.sh` script
+- `js/precompiled`: All compiled files are output here when run through the `compile.sh` script, do not modify files in this folder as they will be overwritten
 
 To setup auto-compilation:
 ```

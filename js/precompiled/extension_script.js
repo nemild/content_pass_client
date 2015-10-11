@@ -236,7 +236,7 @@ function getHoursElapsedToday() {
   return d.getHours() + d.getMinutes() / 60;
 }
 
-function login(email, password, last_updated_display_id, callback) {
+function login(email, password, callback) {
   var data = JSON.stringify({
     'email': email,
     'password': password,
@@ -250,7 +250,6 @@ function login(email, password, last_updated_display_id, callback) {
     'contentType': 'application/json',
     'dataType': 'json'
   }).done(function (responseData) {
-    last_updated_id = last_updated_display_id;
     localStorage[PAGES_RECORDED_TODAY] = responseData.num_urls_recorded_in_last_hours;
     localStorage[PAGES_RECORDED_START_DAY] = new Date().getDate().toString();
     setCurrentPageCount();
@@ -264,7 +263,7 @@ function login(email, password, last_updated_display_id, callback) {
 chrome.runtime.onMessage.addListener(function router(request, sender, sendResponse) {
   switch (request.message) {
     case LOGIN_MESSAGE:
-      login(request.email, request.password, request.last_updated_id, function (uuid) {
+      login(request.email, request.password, function (uuid) {
         if (uuid && uuid !== '') {
           localStorage.id = uuid;
         }
