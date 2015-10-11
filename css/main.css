@@ -72,6 +72,11 @@
   color:#f45915;
 }
 
+.logo a, .logo a:focus, .logo a:hover, .logo a:active {
+  text-decoration:none;
+  color:#f45915;
+}
+
 .logo-heading {
   text-align:center;
   font-size:30px;
