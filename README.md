@@ -18,5 +18,6 @@ ContentPass Client is a Google Chrome extension that works with ContentPass. It 
 
 To setup auto-compilation:
 ```
-./compile.sh # auto compiles files on reload
+npm install -g babel # babel is the ES2015 transpiler
+./compile.sh # auto compiles files on change, updated versions are output to js/precompiled/
 ```
