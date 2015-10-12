@@ -4,7 +4,7 @@
 ### Overview
 ![Screenshot](screenshot.png)
 
-[ContentPass](https://content-pass.herokuapp.com) is an idea to let readers pay writers automatically for the sites they visit. Initially, we're testing it out in the [Hacker News](https://news.ycombinator.com) community. While it doesn't solicit money right now, over time, you would select a monthly budget - and the money would be automatically amoritized across the relevant top Hacker News sites that you visit.
+[ContentPass](https://content-pass.herokuapp.com) is a mechanism that lets readers pay content creators automatically by tracking the sites readers visit. Initially, we're testing it out in the [Hacker News](https://news.ycombinator.com) community. While it doesn't solicit money right now, over time, you would select an aggregate monthly budget - and the money would be automatically amoritized across the relevant top Hacker News sites that you visit.
 
 ContentPass Client (this repo) is a Google Chrome extension that works with ContentPass. It lets you sign in, submits relevant sites to our server, and change the weights of sites that you've visited.
 
@@ -14,14 +14,15 @@ The extension only sends our server sites that you visit that are in the top 150
 First, compile the source files to ES5 Javascript:
 
 1. Install the babel ES 2015 transpiler (`npm install -g babel`)
-2. Run the compile script (`./compile.sh`); this will watch for any changes to the source files and automatically recompile (Ctrl-C out if you just want to run once)
+2. Clone the content_pass_client repo to your local machine and `cd` into the directory. 
+3. Run the compile script (`./compile.sh`); this will watch for any changes to the source files and automatically recompile (Ctrl-C out if you just want to run once)
 
 Then add to Google Chrome:
 
 1. In Google Chrome, navigate to `chrome://extensions`
 2. Check the top right box that says Developer Mode
 3. Click the button at top left that says *Load Unpacked Extension*
-4. Select the root directory of this repo
+4. Select the root directory of the content_pass_client repo that you cloned locally. 
 5. Look for the *CO* icon on the right side of your Google Chrome toolbar
  - Click to login, you can sign up [here](https://content-pass.herokuapp.com/users/sign_up); once you're signed in, only the HN related top 150 sites will be sent to our server
  - You can additionally 5X sites you really like or 0X ones you don't, the badge will show the daily number of sites that it has recorded (you can always go to the [Dashboard](https://content-pass.herokuapp.com/dashboard))
