@@ -100,7 +100,7 @@
 }
 
 body {
-  min-width: 200px;
+  min-width: 250px;
 }
 
 .links {
@@ -158,7 +158,7 @@ body {
   position:absolute;
   top:0;
   left:0;
-  width:90%;
+  width:100%;
   height:100%;
   background:rgba(255,255,255,0.95);
   padding:2px;
@@ -225,6 +225,7 @@ body {
 }
 
 #logged_in_frame {
+  text-align: center;
 }
 
 #auto_tracking {

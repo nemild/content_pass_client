@@ -116,6 +116,24 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
     toggleTracking();
   });
 
+  $('.tutorial-next-button').on('click', function() {
+    let next = $(this).data('next-target');
+    let current = $(this).data('current-target');
+
+    $('#' + current).fadeOut();
+    if (next !== '') {
+      $('#' + next).fadeIn();
+    } else {
+      $('#tutorial-frame').fadeOut();
+      localStorage.tutorialShown = 'true';
+    }
+  });
+
+  if( localStorage.tutorialShown === undefined ) {
+    $('#tutorial-frame').fadeIn();
+  }
+
+
   let et = localStorage.enable_tracking;
   setTrackingIndicator(
     (et === 'true' || et === undefined) ? true : false
