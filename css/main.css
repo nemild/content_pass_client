@@ -51,6 +51,18 @@
   border-color: #2e6da4;
 }
 
+.btn-danger {
+  color: #fff;
+  background-color: #d9534f;
+  border-color: #d43f3a;
+}
+
+.btn-success {
+  color: #fff;
+  background-color: #5cb85c;
+  border-color: #4cae4c;
+}
+
 .btn-lg {
   padding: 10px 16px;
   font-size: 18px;
@@ -206,4 +218,16 @@ body {
   width:15px;
   height:15px;
   float:right;
+}
+
+.center {
+  text-align: center;
+}
+
+#logged_in_frame {
+}
+
+#auto_tracking {
+  margin-top: 10px;
+  font-size:10px;
 }

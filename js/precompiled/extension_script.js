@@ -17,7 +17,7 @@ var REFRESH_INTERVAL_MINUTES = 10;
 // Local Storage
 var PAGES_RECORDED_TODAY = 'pages_recorded_today';
 var PAGES_RECORDED_START_DAY = 'pages_recorded_start_day';
-var WELCOME_SCREEN_SHOWN = 'welcome_screen_shown';
+var ENABLE_TRACKING = 'enable_tracking';
 
 var HN_DICT_URLS_KEY = PROVIDER_SLUG + 'urls';
 var HN_DICT_URLS_TEMP_KEY = PROVIDER_SLUG + 'newUrls';
@@ -29,7 +29,7 @@ var PATH_FOR_POSTED_ICON = '../images/icon20.png';
 var PATH_FOR_DEFAULT_ICON = '../images/icon20.png';
 
 // Globals
-var last_updated_id = null;
+// let last_updated_id = null;
 
 // Acceptable weights
 var WEIGHTS = {
@@ -43,6 +43,7 @@ var DEFAULT_WEIGHT_KEY = '1X';
 var LOGIN_MESSAGE = 'LOGIN';
 var PAGE_LOADED_MESSAGE = 'PAGE_LOADED';
 var LOGOUT_MESSAGE = 'LOGOUT';
+var TOGGLE_ENABLED_MESSAGE = 'TOGGLE_ENABLED';
 
 // ******* End Constants ********
 
@@ -170,7 +171,7 @@ function postPageview(url, multiplier, successCallback, failureCallback) {
   }).done(function (response, textStatus, xhr) {
     // Reset counter if the day change, probably should be done on interval not during post
     var currentDate = new Date().getDate();
-    if (localStorage[PAGES_RECORDED_START_DAY] != currentDate) {
+    if (localStorage[PAGES_RECORDED_START_DAY] !== currentDate) {
       localStorage[PAGES_RECORDED_START_DAY] = currentDate.toString();
       localStorage[PAGES_RECORDED_TODAY] = '0';
     }
@@ -178,21 +179,21 @@ function postPageview(url, multiplier, successCallback, failureCallback) {
     window.response = response;
 
     if (xhr.status === 201) {
-      chrome.browserAction.setIcon({ path: PATH_FOR_POSTED_ICON });
-      localStorage[PAGES_RECORDED_TODAY] = (parseInt(localStorage[PAGES_RECORDED_TODAY]) + 1).toString();
+      chrome.browserAction.setIcon({ 'path': PATH_FOR_POSTED_ICON });
+      localStorage[PAGES_RECORDED_TODAY] = (parseInt(localStorage[PAGES_RECORDED_TODAY], 10) + 1).toString();
       setTimeout(setDefaultIcon, 1000);
       setCurrentPageCount();
     } else if (xhr.status === 200) {
-      if (response['created_in_recent_hours']) {
+      if (response.created_in_recent_hours) {
         console.log('here1');
       }
 
-      if (response && response['created_in_recent_hours']) {
+      if (response && response.created_in_recent_hours) {
         console.log(typeof response.created_in_recent_hours);
         console.log('here');
-        localStorage[PAGES_RECORDED_TODAY] = (parseInt(localStorage[PAGES_RECORDED_TODAY]) - 1).toString();
+        localStorage[PAGES_RECORDED_TODAY] = (parseInt(localStorage[PAGES_RECORDED_TODAY], 10) - 1).toString();
       }
-      chrome.browserAction.setBadgeText({ text: 'Sent' });
+      chrome.browserAction.setBadgeText({ 'text': 'Sent' });
       setTimeout(setCurrentPageCount, 1500);
     }
     if (successCallback) {
@@ -208,17 +209,16 @@ function postPageview(url, multiplier, successCallback, failureCallback) {
 }
 
 function setDefaultIcon() {
-  chrome.browserAction.setIcon({ path: PATH_FOR_DEFAULT_ICON });
+  chrome.browserAction.setIcon({ 'path': PATH_FOR_DEFAULT_ICON });
 }
 
 function setCurrentPageCount() {
-  chrome.browserAction.setBadgeText({ text: localStorage[PAGES_RECORDED_TODAY] });
+  chrome.browserAction.setBadgeText({ 'text': localStorage[PAGES_RECORDED_TODAY] });
 }
 
 function setWeight(url, multiplier, successCallback, failureCallback) {
   var userInitiated = arguments[4] === undefined ? false : arguments[4];
 
-  var uuid = localStorage.id;
   if (!loggedIn()) {
     return false;
   }
@@ -253,11 +253,36 @@ function login(email, password, callback) {
     localStorage[PAGES_RECORDED_TODAY] = responseData.num_urls_recorded_in_last_hours;
     localStorage[PAGES_RECORDED_START_DAY] = new Date().getDate().toString();
     setCurrentPageCount();
+    // Configure the first time
+    if (localStorage[ENABLE_TRACKING] === undefined) {
+      localStorage[ENABLE_TRACKING] = 'true';
+    }
     callback(responseData.uuid);
   }).fail(function () {
-    last_updated_id = null;
+    // last_updated_id = null;
     callback('');
   });
+}
+
+function toggleTracking() {
+  if (localStorage[ENABLE_TRACKING] === 'false') {
+    localStorage[ENABLE_TRACKING] = 'true';
+    startDownloadDaemon();
+    return true;
+  } else if (localStorage[ENABLE_TRACKING] === 'true') {
+    clearDownloadDaemonJob();
+    localStorage[ENABLE_TRACKING] = 'false';
+    return false;
+  }
+  return '';
+}
+
+function clearDownloadDaemonJob() {
+  if (localStorage[HN_INTERVAL_ID]) {
+    clearInterval(parseInt(localStorage[HN_INTERVAL_ID], 10));
+    localStorage[HN_INTERVAL_ID] = '';
+    delete localStorage[HN_INTERVAL_ID];
+  }
 }
 
 chrome.runtime.onMessage.addListener(function router(request, sender, sendResponse) {
@@ -275,32 +300,33 @@ chrome.runtime.onMessage.addListener(function router(request, sender, sendRespon
         }
       });
       return true;
-      break;
     case LOGOUT_MESSAGE:
       localStorage.id = '';
       delete localStorage.id;
-      if (localStorage[HN_INTERVAL_ID]) {
-        clearInterval(parseInt(localStorage[HN_INTERVAL_ID]));
-        localStorage[HN_INTERVAL_ID] = '';
-        delete localStorage[HN_INTERVAL_ID];
-      }
+      clearDownloadDaemonJob();
       localStorage[PAGES_RECORDED_TODAY] = '';
       delete localStorage[PAGES_RECORDED_TODAY];
-      chrome.browserAction.setBadgeText({ text: '' });
+      chrome.browserAction.setBadgeText({ 'text': '' });
 
       sendResponse({ 'hello': 'world' });
       break;
     case PAGE_LOADED_MESSAGE:
       var url = sender.tab.url;
       console.log(url);
-      if (urlInTop(url)) {
+      if (localStorage[ENABLE_TRACKING] !== 'false' && urlInTop(url)) {
         setWeight(url, WEIGHTS[DEFAULT_WEIGHT_KEY], function (response) {
           sendResponse({ 'success': 'true' });
         }, function (response) {
           sendResponse({ 'success': 'false' });
         });
         // console.log('Page in top');
-      } else {}
+      } else {
+        // Ignored
+        console.log('Not sent');
+      }
+      break;
+    case TOGGLE_ENABLED_MESSAGE:
+      sendResponse({ 'tracking_on': toggleTracking() });
       break;
     default:
       if (WEIGHTS.hasOwnProperty(request.message)) {
@@ -318,6 +344,3 @@ chrome.runtime.onMessage.addListener(function router(request, sender, sendRespon
 
   }
 });
-
-// Ignored
-// console.log('Page not in top');
