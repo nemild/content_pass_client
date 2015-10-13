@@ -164,12 +164,10 @@ function postPageview(url, multiplier, successCallback, failureCallback, userIni
   }).done(function(response, textStatus, xhr) {
     // Reset counter if the day change, probably should be done on interval not during post
     let currentDate = (new Date()).getDate();
-    if (localStorage[PAGES_RECORDED_START_DAY] !== currentDate) {
+    if (parseInt(localStorage[PAGES_RECORDED_START_DAY], 10) !== currentDate) {
       localStorage[PAGES_RECORDED_START_DAY] = currentDate.toString();
       localStorage[PAGES_RECORDED_TODAY] = '0';
     }
-    console.log(response);
-    window.response = response;
 
     if (xhr.status === 201) {
       chrome.browserAction.setIcon({'path': PATH_FOR_POSTED_ICON});
