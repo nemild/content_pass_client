@@ -14,7 +14,7 @@ The extension only sends our server sites that you visit that are in the top 150
 First, compile the source files to ES5 Javascript:
 
 1. Install the babel ES 2015 transpiler (`npm install -g babel`)
-2. Clone the content_pass_client repo to your local machine and `cd` into the directory. 
+2. Clone the content_pass_client repo to your local machine and `cd` into the directory.
 3. Run the compile script (`./compile.sh`); this will watch for any changes to the source files and automatically recompile (Ctrl-C out if you just want to run once)
 
 Then add to Google Chrome:
@@ -22,7 +22,7 @@ Then add to Google Chrome:
 1. In Google Chrome, navigate to `chrome://extensions`
 2. Check the top right box that says Developer Mode
 3. Click the button at top left that says *Load Unpacked Extension*
-4. Select the root directory of the content_pass_client repo that you cloned locally. 
+4. Select the root directory of the content_pass_client repo that you cloned locally.
 5. Look for the *CO* icon on the right side of your Google Chrome toolbar
  - Click to login, you can sign up [here](https://content-pass.herokuapp.com/users/sign_up); once you're signed in, only the HN related top 150 sites will be sent to our server
  - You can additionally 5X sites you really like or 0X ones you don't, the badge will show the daily number of sites that it has recorded (you can always go to the [Dashboard](https://content-pass.herokuapp.com/dashboard))
@@ -44,3 +44,10 @@ To setup auto-compilation:
 npm install -g babel # babel is the ES2015 transpiler
 ./compile.sh # auto compiles files on change, updated versions are output to js/precompiled/
 ```
+
+#### Outstanding issues
+##### URL Variations
+Often on HN, URLs posted are different from that the browser navigates to. Currently, we catch http -> https, and url with and without query parameters. In the future, we will also handle the following variations:
+www -> no subdomain
+no subdomain -> www
+github.com url ending in .git -> github.com url without a .git
