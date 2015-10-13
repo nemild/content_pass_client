@@ -98,9 +98,9 @@ function downloadAllPages() {
         downloadPage();
       }).fail(function handleError(jqXHR, textStatus, errorThrown) {
         console.warn('Could not download HN');
-        console.log(jqXHR);
-        console.log(textStatus);
-        console.log(errorThrown);
+        // console.log(jqXHR);
+        // console.log(textStatus);
+        // console.log(errorThrown);
       });
     }
   }
@@ -175,13 +175,7 @@ function postPageview(url, multiplier, successCallback, failureCallback, userIni
       setTimeout(setDefaultIcon, 1000);
       setCurrentPageCount();
     } else if (xhr.status === 200) {
-      if (response.created_in_recent_hours) {
-        console.log('here1');
-      }
-
       if (response && response.created_in_recent_hours) {
-        console.log(typeof(response.created_in_recent_hours));
-        console.log('here');
         localStorage[PAGES_RECORDED_TODAY] = (parseInt( localStorage[PAGES_RECORDED_TODAY], 10 ) - 1).toString();
       }
       chrome.browserAction.setBadgeText({'text': 'Sent'});
@@ -317,7 +311,7 @@ chrome.runtime.onMessage.addListener(
               sendResponse({'success': 'false'});
             }
           );
-          // console.log('Page in top');
+          console.log('Sent to server');
         } else {
           // Ignored
           console.log('Not sent');
