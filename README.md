@@ -47,7 +47,8 @@ npm install -g babel # babel is the ES2015 transpiler
 
 #### Outstanding issues
 ##### URL Variations
-Often on HN, URLs posted are different from that the browser navigates to. Currently, we catch http -> https, and url with and without query parameters. In the future, we will also handle the following variations:
-www -> no subdomain
-no subdomain -> www
-github.com url ending in .git -> github.com url without a .git
+Often on HN, posted URLs are different from that the browser navigates to. Currently, we catch http -> https, and url with and without query parameters. In the future, we will also handle the following variations:
+
+- www -> no subdomain
+- no subdomain -> www
+- github.com url ending in .git -> github.com url without a .git

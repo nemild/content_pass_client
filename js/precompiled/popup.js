@@ -33,6 +33,12 @@ function configureLoggedOutState() {
   $('#updated_indicator_frame').hide();
 }
 
+function determineCurrentTabHistory() {
+  chrome.tabs.getCurrent(function (tab) {
+    console.log(tab.url);
+  });
+}
+
 function toggleTracking() {
   runtime.sendMessage({
     'message': TOGGLE_ENABLED_MESSAGE
