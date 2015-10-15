@@ -9,10 +9,10 @@
   <body>
     <div class='logo logo-heading'><a href='https://content-pass.herokuapp.com'>ContentPass</a></div>
     <section id='logged_in_frame'>
-      <ul class="content_pass_actions_frame" id="multiplier_selector">
-        <li class="content_pass_single_action">0X</li>
-        <li class="content_pass_single_action selected">1X</li>
-        <li class="content_pass_single_action">5X</li>
+      <ul class="content-pass-actions-frame" id="multiplier_selector">
+        <li class="content-pass-single-action">0X</li>
+        <li class="content-pass-single-action">1X</li>
+        <li class="content-pass-single-action">5X</li>
       </ul>
       <div id='updated_indicator_frame'>
         <div id='updated_indicator'></div>
@@ -32,10 +32,12 @@
         <input type="email" name="usermail" placeholder="Email" style='font-size:24px; padding:7px;' class='form-control' required='required'>
         <label for="password" style='font-weight:bold; font-size:16px; margin-top:9px;border-radius:5px;display:block;' required='required'>Password</label>
         <input type="password" name="password" placeholder="Password" required style='font-size:24px; padding:7px;' class='form-control'>
-        <div style='text-align:center;'><input type="submit" id="submit_button" class='btn btn-primary btn-lg login-button' value='Login'></div>
+        <div style='text-align:center;'><input type="submit" id="submit_button" class='btn btn-primary btn-lg login-button' value='Login'>
+          <div class='no-account-msg'>Don't have an account? <a href='https://content-pass.herokuapp.com/welcome' target='_blank'>Sign Up</a></div>
+        </div>
       </form>
       <div class='loading-frame'>
-        <img class='loading' id='login_loading' src='../images/loading.gif' />
+        <img class='loading' id='login_loading' src='../images/loading.gif' alt='Loading' />
       </div>
     </section>
 
@@ -59,12 +61,6 @@
       <div id='part4' class='part'>
         <div class='logo logo-heading'>ContentPass</div>
         <div class='tutorial-body'>Privacy really matters to us. If you don't want to automatically report your HN reading at anytime, press the disable button, logout, or go into incognito mode. In the disabled mode, you can still use the 1X and 5X buttons to manually record a site.</div>
-        <div class='btn btn-primary tutorial-next-button' data-next-target='' data-current-target='part4'>Next</div>
-      </div>
-
-      <div id='part4' class='part'>
-        <div class='logo logo-heading'>ContentPass</div>
-        <div class='tutorial-body'>Privacy really matters to us. If you don't want to automatically report your HN reading at anytime, press the disable button, logout, or go into incognito mode. In the disabled mode, you can still use the 1X and 5X buttons to manually record a site.</div>
         <div class='btn btn-primary tutorial-next-button' data-next-target='part5' data-current-target='part4'>Next</div>
       </div>
 
@@ -84,7 +80,7 @@
       <br />
       <a href='mailto:nemild@gmail.com?subject=ContentPass%20Feedback' target='_blank'>Feedback</a>
       <div class='loading-frame'>
-        <img class='loading' id='loggedin_loading' src='../images/loading.gif'>
+        <img class='loading' id='loggedin_loading' src='../images/loading.gif' alt='Loading'>
         </div>
     </footer>
 

@@ -1,6 +1,12 @@
-// Server Constants
 'use strict';
 
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _UrlVariation = require('./UrlVariation');
+
+var _UrlVariation2 = _interopRequireDefault(_UrlVariation);
+
+// Server Constants
 var BASE_SERVER_URL = 'https://content-pass.herokuapp.com/';
 // const BASE_SERVER_URL = 'http://localhost:3000/'
 var PAGE_VIEW_RELATIVE_URL = 'api/v1/page_views';
@@ -13,6 +19,7 @@ var PROVIDER_BASE_URL = 'https://news.ycombinator.com/';
 var PROVIDER_PAGE_RELATIVE_URL = 'news?p=';
 var MAX_NUM_PAGES = 5;
 var REFRESH_INTERVAL_MINUTES = 10;
+var REFRESH_RESTART_SCALE = 6; // amount to scale REFRESH_INTERVAL_MINUTES to determine if the HN scraping job should be restarted
 
 // Local Storage
 var PAGES_RECORDED_TODAY = 'pages_recorded_today';
@@ -113,9 +120,35 @@ function downloadAllPages() {
   downloadPage();
 }
 
-function startDownloadDaemon() {
-  downloadAllPages();
+function startDownloadDaemonJob() {
   localStorage[HN_INTERVAL_ID] = setInterval(downloadAllPages, REFRESH_INTERVAL_MINUTES * 60000).toString();
+  downloadAllPages();
+}
+
+function clearDownloadDaemonJob() {
+  if (localStorage[HN_INTERVAL_ID] || localStorage[HN_INTERVAL_ID] === '0') {
+    clearInterval(parseInt(localStorage[HN_INTERVAL_ID], 10));
+    delete localStorage[HN_INTERVAL_ID];
+  }
+}
+
+// Convenience helper provided as setInterval sometimes stops firing
+// In theory, we shouldn't need this
+function resetDownloadDaemonJob() {
+  clearDownloadDaemonJob();
+  startDownloadDaemonJob();
+}
+
+function checkAttemptRestart() {
+  if (localStorage[HN_LAST_UPDATED] && localStorage[ENABLE_TRACKING] === 'true') {
+    var previousDate = Date.parse(localStorage[HN_LAST_UPDATED]);
+    var elapsedSecondsSinceLastUpdate = (new Date() - previousDate) / 1000;
+
+    if (elapsedSecondsSinceLastUpdate > REFRESH_INTERVAL_MINUTES * 60 * REFRESH_RESTART_SCALE) {
+      console.info('Restarting Download Daemon');
+      resetDownloadDaemonJob();
+    }
+  }
 }
 
 function urlInTop(url) {
@@ -124,7 +157,7 @@ function urlInTop(url) {
   }
 
   var urlArr = getTopUrls();
-  var ur = new UrlVariation(url.toLowerCase());
+  var ur = new _UrlVariation2['default'](url.toLowerCase());
   var urlRepresentations = ur.getAllUrlRepresentations();
 
   if (!urlRepresentations || urlRepresentations.length === 0) {
@@ -259,7 +292,7 @@ function login(email, password, callback) {
 function toggleTracking() {
   if (localStorage[ENABLE_TRACKING] === 'false') {
     localStorage[ENABLE_TRACKING] = 'true';
-    startDownloadDaemon();
+    startDownloadDaemonJob();
     return true;
   } else if (localStorage[ENABLE_TRACKING] === 'true') {
     clearDownloadDaemonJob();
@@ -267,14 +300,6 @@ function toggleTracking() {
     return false;
   }
   return '';
-}
-
-function clearDownloadDaemonJob() {
-  if (localStorage[HN_INTERVAL_ID]) {
-    clearInterval(parseInt(localStorage[HN_INTERVAL_ID], 10));
-    localStorage[HN_INTERVAL_ID] = '';
-    delete localStorage[HN_INTERVAL_ID];
-  }
 }
 
 chrome.runtime.onMessage.addListener(function router(request, sender, sendResponse) {
@@ -288,15 +313,13 @@ chrome.runtime.onMessage.addListener(function router(request, sender, sendRespon
           'id': uuid
         });
         if (localStorage.id) {
-          startDownloadDaemon();
+          startDownloadDaemonJob();
         }
       });
       return true;
     case LOGOUT_MESSAGE:
-      localStorage.id = '';
       delete localStorage.id;
       clearDownloadDaemonJob();
-      localStorage[PAGES_RECORDED_TODAY] = '';
       delete localStorage[PAGES_RECORDED_TODAY];
       chrome.browserAction.setBadgeText({ 'text': '' });
 
@@ -305,6 +328,7 @@ chrome.runtime.onMessage.addListener(function router(request, sender, sendRespon
     case PAGE_LOADED_MESSAGE:
       var url = sender.tab.url;
       console.log(url);
+      checkAttemptRestart();
       if (localStorage[ENABLE_TRACKING] !== 'false' && urlInTop(url)) {
         setWeight(url, WEIGHTS[DEFAULT_WEIGHT_KEY], function (response) {
           sendResponse({ 'success': 'true' });
@@ -333,6 +357,5 @@ chrome.runtime.onMessage.addListener(function router(request, sender, sendRespon
         console.warn('Bad weight');
       }
       break;
-
   }
 });

@@ -12,7 +12,7 @@
     }
   ],
   "background": {
-    "scripts": ["js/jquery-2.1.4.min.js", "js/precompiled/extension_script.js", "js/precompiled/UrlVariation.js"],
+    "scripts": ["js/jquery-2.1.4.min.js", "js/precompiled/backend.js"],
     "persistent": true
   },
   "browser_action": {

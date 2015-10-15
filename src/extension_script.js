@@ -1,3 +1,5 @@
+import UrlVariation from './UrlVariation';
+
 // Server Constants
 const BASE_SERVER_URL = 'https://content-pass.herokuapp.com/';
 // const BASE_SERVER_URL = 'http://localhost:3000/'
@@ -11,6 +13,7 @@ const PROVIDER_BASE_URL = 'https://news.ycombinator.com/';
 const PROVIDER_PAGE_RELATIVE_URL = 'news?p=';
 const MAX_NUM_PAGES = 5;
 const REFRESH_INTERVAL_MINUTES = 10;
+const REFRESH_RESTART_SCALE = 6; // amount to scale REFRESH_INTERVAL_MINUTES to determine if the HN scraping job should be restarted
 
 // Local Storage
 const PAGES_RECORDED_TODAY = 'pages_recorded_today';
@@ -107,9 +110,38 @@ function downloadAllPages() {
   downloadPage();
 }
 
-function startDownloadDaemon() {
+function startDownloadDaemonJob() {
+  localStorage[HN_INTERVAL_ID] = setInterval(
+    downloadAllPages,
+    REFRESH_INTERVAL_MINUTES * 60000
+  ).toString();
   downloadAllPages();
-  localStorage[HN_INTERVAL_ID] = setInterval(downloadAllPages, REFRESH_INTERVAL_MINUTES * 60000).toString();
+}
+
+function clearDownloadDaemonJob() {
+  if (localStorage[HN_INTERVAL_ID] || localStorage[HN_INTERVAL_ID] === '0') {
+    clearInterval(parseInt(localStorage[HN_INTERVAL_ID], 10));
+    delete localStorage[HN_INTERVAL_ID];
+  }
+}
+
+// Convenience helper provided as setInterval sometimes stops firing
+// In theory, we shouldn't need this
+function resetDownloadDaemonJob() {
+  clearDownloadDaemonJob();
+  startDownloadDaemonJob();
+}
+
+function checkAttemptRestart() {
+  if (localStorage[HN_LAST_UPDATED] && localStorage[ENABLE_TRACKING] === 'true') {
+    const previousDate = Date.parse(localStorage[HN_LAST_UPDATED]);
+    const elapsedSecondsSinceLastUpdate = ( new Date - previousDate ) / 1000;
+
+    if (elapsedSecondsSinceLastUpdate > (REFRESH_INTERVAL_MINUTES * 60 * REFRESH_RESTART_SCALE) ) {
+      console.info('Restarting Download Daemon');
+      resetDownloadDaemonJob();
+    }
+  }
 }
 
 function urlInTop(url) {
@@ -250,7 +282,7 @@ function login(email, password, callback) {
 function toggleTracking() {
   if (localStorage[ENABLE_TRACKING] === 'false') {
     localStorage[ENABLE_TRACKING] = 'true';
-    startDownloadDaemon();
+    startDownloadDaemonJob();
     return true;
   } else if (localStorage[ENABLE_TRACKING] === 'true') {
     clearDownloadDaemonJob();
@@ -258,14 +290,6 @@ function toggleTracking() {
     return false;
   }
   return '';
-}
-
-function clearDownloadDaemonJob() {
-  if (localStorage[HN_INTERVAL_ID]) {
-    clearInterval(parseInt(localStorage[HN_INTERVAL_ID], 10));
-    localStorage[HN_INTERVAL_ID] = '';
-    delete localStorage[HN_INTERVAL_ID];
-  }
 }
 
 chrome.runtime.onMessage.addListener(
@@ -283,15 +307,13 @@ chrome.runtime.onMessage.addListener(
               'id': uuid
             });
             if (localStorage.id) {
-              startDownloadDaemon();
+              startDownloadDaemonJob();
             }
           });
           return true;
       case LOGOUT_MESSAGE:
-        localStorage.id = '';
         delete localStorage.id;
         clearDownloadDaemonJob();
-        localStorage[PAGES_RECORDED_TODAY] = '';
         delete localStorage[PAGES_RECORDED_TODAY];
         chrome.browserAction.setBadgeText({'text': ''});
 
@@ -300,6 +322,7 @@ chrome.runtime.onMessage.addListener(
       case PAGE_LOADED_MESSAGE:
         let url = sender.tab.url;
         console.log(url);
+        checkAttemptRestart();
         if (localStorage[ENABLE_TRACKING] !== 'false' && urlInTop(url)) {
           setWeight(
             url,
@@ -338,7 +361,6 @@ chrome.runtime.onMessage.addListener(
         console.warn('Bad weight');
       }
       break;
-
     }
   }
 );

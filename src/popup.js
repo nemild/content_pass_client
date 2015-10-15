@@ -5,6 +5,7 @@ const LOGIN_MESSAGE = 'LOGIN';
 const LOGOUT_MESSAGE = 'LOGOUT';
 const TOGGLE_ENABLED_MESSAGE = 'TOGGLE_ENABLED';
 
+
 // Chrome Extension variables
 let bgPage;
 let runtime;
@@ -145,9 +146,9 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
     (et === 'true' || et === undefined) ? true : false
   );
 
-  $('.content_pass_single_action').click(function singleAction() {
+  $('.content-pass-single-action').click(function singleAction() {
     if (!$(this).hasClass('selected')) {
-      $('.content_pass_single_action').removeClass('selected');
+      $('.content-pass-single-action').removeClass('selected');
       $(this).addClass('selected');
 
       // Add setting code here

@@ -136,12 +136,12 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
   var et = localStorage.enable_tracking;
   setTrackingIndicator(et === 'true' || et === undefined ? true : false);
 
-  $('.content_pass_single_action').click(function singleAction() {
+  $('.content-pass-single-action').click(function singleAction() {
     var _this = this;
 
     if (!$(this).hasClass('selected')) {
       (function () {
-        $('.content_pass_single_action').removeClass('selected');
+        $('.content-pass-single-action').removeClass('selected');
         $(_this).addClass('selected');
 
         // Add setting code here

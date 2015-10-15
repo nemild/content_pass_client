@@ -8,18 +8,20 @@ var _createClass = (function () { function defineProperties(target, props) { for
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-var UrlVariation = (function () {
-  function UrlVariation(url) {
-    _classCallCheck(this, UrlVariation);
+var _default = (function () {
+  var _class = function _default(url) {
+    _classCallCheck(this, _class);
 
-    this.url = url.toLowerCase();
-    this.parsedUrl = null;
-    if (this.url) {
-      this.parsedUrl = parseUri(this.url);
+    if (url) {
+      this.url = url.toLowerCase();
+      this.parsedUrl = null;
+      if (this.url) {
+        this.parsedUrl = parseUri(this.url);
+      }
     }
-  }
+  };
 
-  _createClass(UrlVariation, [{
+  _createClass(_class, [{
     key: 'getAllUrlRepresentations',
 
     // Public
@@ -31,7 +33,7 @@ var UrlVariation = (function () {
       }
 
       var urlRepresentations = [this.url];
-      var altProtocolUrl = this.getAlternateProtocolUrl(this.url);
+      var altProtocolUrl = this.alternateProtocolUrl(this.url);
       if (altProtocolUrl) {
         urlRepresentations.push(altProtocolUrl);
       }
@@ -57,10 +59,13 @@ var UrlVariation = (function () {
         if (p.port) {
           withoutQueryParams += ':' + p.port;
         }
-        withoutQueryParams += p.path + p.anchor;
+        withoutQueryParams += p.path;
+        if (p.anchor) {
+          withoutQueryParams += '#' + p.anchor;
+        }
         results.push(withoutQueryParams); // without query parameters
 
-        altProtocolUrl = getAlternateProtocolUrl(withoutQueryParams);
+        var altProtocolUrl = this.alternateProtocolUrl(withoutQueryParams);
         if (altProtocolUrl) {
           results.push(altProtocolUrl);
         }
@@ -90,10 +95,10 @@ var UrlVariation = (function () {
     }
   }]);
 
-  return UrlVariation;
+  return _class;
 })();
 
-exports['default'] = UrlVariation;
+exports['default'] = _default;
 
 // parseUri 1.2.2
 // (c) Steven Levithan <stevenlevithan.com>

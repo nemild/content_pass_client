@@ -1,4 +1,4 @@
-class UrlVariation {
+export default class {
   constructor(url) {
     if (url) {
       this.url = url.toLowerCase();
@@ -6,7 +6,6 @@ class UrlVariation {
       if (this.url) {
         this.parsedUrl = parseUri(this.url);
       }
-
     }
   }
 

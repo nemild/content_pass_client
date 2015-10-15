@@ -1,6 +1,7 @@
 var chai = require('chai');
 var assert = chai.assert;
-var UrlVariation = require('../precompiled/UrlVariation');
+// var UrlVariation = require('../precompiled/UrlVariation.js');
+import UrlVariation from '../src/UrlVariation'
 
 describe('UrlVariation', function() {
   it('should provide both http and https for a simple url', function() {
@@ -63,11 +64,8 @@ describe('UrlVariation', function() {
       'http://www.example.com:8080/abc/def/hello.html#ghi',
       'https://www.example.com:8080/abc/def/hello.html#ghi'
     ]
-    for(let i = 0; i < expectedResult.length; i++){
+    for(var i = 0; i < expectedResult.length; i++){
       assert(result[i] === expectedResult[i], 'should have ' + i.toString() + ' element be correct');
     }
   });
-});
-
-describe('UrlVariation', function() {
 });

@@ -1,18 +1,24 @@
 {
-  "name": "content_pass",
+  "name": "content_pass_chrome_client",
   "version": "1.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sahat/hackathon-starter.git"
+    "url": "https://github.com/nemild/content_pass_client.git"
   },
   "scripts": {
-    "test": "mocha --reporter spec --timeout 5000"
+    "test": "./node_modules/.bin/mocha --compilers js:babel/register"
   },
   "dependencies": {},
   "devDependencies": {
     "babel": "^5.8.23",
     "chai": "^3.3.0",
-    "mocha": "^2.3.3"
+    "mocha": "^2.3.3",
+    "mock-local-storage": "^1.0.2",
+    "watch": "^0.16.0",
+    "webpack": "^1.12.2"
+  },
+  "engines": {
+    "node": ">=4.0.0 <4.2.1"
   },
   "license": "MIT"
 }
