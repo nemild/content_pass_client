@@ -18,6 +18,7 @@ In addition to disabling, you can also log out or go into Incognito Mode - and n
 Finally, if you have submitted a URL to our site, you can still delete it from our database. Simply 0X the url within a week - or go to your dashboard and click the delete action. We delete the URL from our database.
 
 ### Installation
+
 1. Clone the *content_pass_client* repo to your local machine
 2. In Google Chrome, navigate to `chrome://extensions`
 3. Check the top right box that says Developer Mode
@@ -31,6 +32,7 @@ Finally, if you have submitted a URL to our site, you can still delete it from o
 ### Developers
 #### Getting started
 *Instructions*
+
 1. Clone the content_pass_client repo to your local machine and `cd` into the directory.
 2. Run `npm install` (this installs the compilation dependencies like babel, webpack, and watch)
 3. Run `make` (run `make watch` if you want to compile on every source file change, rather than once)

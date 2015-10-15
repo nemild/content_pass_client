@@ -73,6 +73,9 @@ function login(e) {
     $('#login_loading').fadeOut(200);
     if (response.id) {
       configureLoggedInState();
+      if (localStorage.tutorialShown === undefined) {
+        $('#tutorial-frame').fadeIn();
+      }
     } else {
       var errorFlash = $('#login-flash');
       errorFlash.text('Sorry, your username or password was invalid').fadeIn();
@@ -128,10 +131,6 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
       localStorage.tutorialShown = 'true';
     }
   });
-
-  if (localStorage.tutorialShown === undefined) {
-    $('#tutorial-frame').fadeIn();
-  }
 
   var et = localStorage.enable_tracking;
   setTrackingIndicator(et === 'true' || et === undefined ? true : false);

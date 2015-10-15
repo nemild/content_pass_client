@@ -78,6 +78,9 @@ function login(e) {
       $('#login_loading').fadeOut(200);
       if (response.id) {
         configureLoggedInState();
+        if( localStorage.tutorialShown === undefined ) {
+          $('#tutorial-frame').fadeIn();
+        }
       } else {
         const errorFlash = $('#login-flash');
         errorFlash.text('Sorry, your username or password was invalid').fadeIn();
@@ -136,9 +139,7 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
     }
   });
 
-  if( localStorage.tutorialShown === undefined ) {
-    $('#tutorial-frame').fadeIn();
-  }
+
 
 
   let et = localStorage.enable_tracking;

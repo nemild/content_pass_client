@@ -17,6 +17,3 @@ compile:
 
 watch:
 	$(WATCH) "make" $(SRC_RAW)
-
-test:
-	npm test
