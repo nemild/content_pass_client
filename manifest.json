@@ -12,7 +12,7 @@
     }
   ],
   "background": {
-    "scripts": ["js/jquery-2.1.4.min.js", "js/precompiled/backend.js"],
+    "scripts": ["js/jquery-2.1.4.min.js", "js/src/backend.js"],
     "persistent": true
   },
   "browser_action": {
