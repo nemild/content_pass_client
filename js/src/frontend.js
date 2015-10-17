@@ -67,10 +67,10 @@
 	var runtime = undefined;
 
 	function cleanDate(date) {
-	  console.log(date);
-	  console.log('here');
-	  if (date && Date.parse(data)) {
-	    var _cleanDate = Date.parse(date);
+	  bgPage.console.log(date);
+	  // bgPage.console.log('here');
+	  if (date) {
+	    var _cleanDate = new Date(date);
 	    return _cleanDate.toLocaleDateString() + ' ' + _cleanDate.toLocaleTimeString();
 	  }
 
@@ -126,7 +126,7 @@
 	  var p = new _ProviderStore2['default']().getCurrentProviders();
 	  for (var providerName in p) {
 	    if (p.hasOwnProperty(providerName)) {
-	      $('.provider-table').append('<tr class=\'' + providerName + ' a-provider\'><td>' + providerName + '</td><td class=\'provider-last-update-date\'>' + p[providerName] + '</td><td><div class=\'remove\' data-slug=\'' + providerName + '\'>Remove</div></td></tr>');
+	      $('.provider-table').append('<tr class=\'' + providerName + ' a-provider\'><td>' + providerName + '</td><td class=\'provider-last-update-date\'>' + cleanDate(p[providerName]) + '</td><td><div class=\'remove\' data-slug=\'' + providerName + '\'>Remove</div></td></tr>');
 	    }
 	  }
 
@@ -218,12 +218,12 @@
 
 	  $('#provider-section .add').on('click', function (e) {
 	    e.preventDefault();
-	    bgPage.console.log($('#provider-section input[type="text"]').val());
+	    $('#provider-section input[type="text"]').val('');
 	    runtime.sendMessage({
 	      'message': ADD_PROVIDER_MESSAGE,
 	      'provider_slug': $('#provider-section input[type="text"]').val()
 	    }, function (response) {
-	      configureListProvidersPage();$('#provider-section input[type="text"]').val('');
+	      configureListProvidersPage();
 	    });
 	  });
 

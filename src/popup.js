@@ -15,10 +15,10 @@ let bgPage;
 let runtime;
 
 function cleanDate(date) {
-  console.log(date);
-  console.log('here');
-  if (date && Date.parse(data)) {
-    const cleanDate = Date.parse(date);
+  bgPage.console.log(date);
+  // bgPage.console.log('here');
+  if (date) {
+    const cleanDate = new Date(date);
     return cleanDate.toLocaleDateString() + ' ' + cleanDate.toLocaleTimeString();
   }
 
@@ -75,7 +75,7 @@ function configureListProvidersPage() {
   for (let providerName in p) {
     if (p.hasOwnProperty(providerName)) {
       $('.provider-table').append(
-        `<tr class='${providerName} a-provider'><td>${providerName}</td><td class='provider-last-update-date'>${p[providerName]}</td><td><div class='remove' data-slug='${providerName}'>Remove</div></td></tr>`
+        `<tr class='${providerName} a-provider'><td>${providerName}</td><td class='provider-last-update-date'>${cleanDate(p[providerName])}</td><td><div class='remove' data-slug='${providerName}'>Remove</div></td></tr>`
       );
     }
   }
@@ -173,13 +173,12 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
 
   $('#provider-section .add').on('click', function(e) {
     e.preventDefault();
-    bgPage.console.log($('#provider-section input[type="text"]').val());
-    runtime.sendMessage(
-      {
+    $('#provider-section input[type="text"]').val('');
+    runtime.sendMessage({
         'message': ADD_PROVIDER_MESSAGE,
         'provider_slug': $('#provider-section input[type="text"]').val()
       },
-      function (response) {configureListProvidersPage(); $('#provider-section input[type="text"]').val('');}
+      function (response) {configureListProvidersPage(); }
     );
   });
 

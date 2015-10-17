@@ -62,6 +62,13 @@
   color: #fff;
 }
 
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+
 .btn-lg {
   border-radius: 6px;
   font-size: 18px;
@@ -253,8 +260,9 @@ body {
   display: inline-block;
 }
 
-#provider-setion .add {
+#provider-section .add {
   display: inline-block;
+
 }
 
 #provider-section #provider-edit-done {
