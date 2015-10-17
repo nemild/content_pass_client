@@ -6,18 +6,21 @@ var _UrlVariation = require('./UrlVariation');
 
 var _UrlVariation2 = _interopRequireDefault(_UrlVariation);
 
+var _ProviderStore = require('./ProviderStore');
+
+var _ProviderStore2 = _interopRequireDefault(_ProviderStore);
+
+var _TopUrlStore = require('./TopUrlStore');
+
+var _TopUrlStore2 = _interopRequireDefault(_TopUrlStore);
+
 // Server Constants
 var BASE_SERVER_URL = 'https://content-pass.herokuapp.com/';
 // const BASE_SERVER_URL = 'http://localhost:3000/'
 var PAGE_VIEW_RELATIVE_URL = 'api/v1/page_views';
 var LOGIN_RELATIVE_URL = 'api/v1/sessions';
 
-// Hacker News Constants
-var PROVIDER_NAME = 'Hacker News';
-var PROVIDER_SLUG = 'hn_';
-var PROVIDER_BASE_URL = 'https://news.ycombinator.com/';
-var PROVIDER_PAGE_RELATIVE_URL = 'news?p=';
-var MAX_NUM_PAGES = 5;
+// General refresh
 var REFRESH_INTERVAL_MINUTES = 10;
 var REFRESH_RESTART_SCALE = 6; // amount to scale REFRESH_INTERVAL_MINUTES to determine if the HN scraping job should be restarted
 
@@ -26,17 +29,11 @@ var PAGES_RECORDED_TODAY = 'pages_recorded_today';
 var PAGES_RECORDED_START_DAY = 'pages_recorded_start_day';
 var ENABLE_TRACKING = 'enable_tracking';
 
-var HN_DICT_URLS_KEY = PROVIDER_SLUG + 'urls';
-var HN_DICT_URLS_TEMP_KEY = PROVIDER_SLUG + 'newUrls';
-var HN_LAST_UPDATED = PROVIDER_SLUG + 'last_updated';
-var HN_INTERVAL_ID = PROVIDER_SLUG + 'interval_id';
+var DOWNLOAD_DAEMON_INTERVAL_ID = 'interval_id';
 
 // Icons
 var PATH_FOR_POSTED_ICON = '../images/icon20.png';
 var PATH_FOR_DEFAULT_ICON = '../images/icon20.png';
-
-// Globals
-// let last_updated_id = null;
 
 // Acceptable weights
 var WEIGHTS = {
@@ -51,84 +48,24 @@ var LOGIN_MESSAGE = 'LOGIN';
 var PAGE_LOADED_MESSAGE = 'PAGE_LOADED';
 var LOGOUT_MESSAGE = 'LOGOUT';
 var TOGGLE_ENABLED_MESSAGE = 'TOGGLE_ENABLED';
-
+var ADD_PROVIDER_MESSAGE = 'ADD_PROVIDER';
+var REMOVE_PROVIDER_MESSAGE = 'REMOVE_PROVIDER';
 // ******* End Constants ********
 
-// Get Top 150 URLs on HN every 10 minutes
-function extractURLs(data, i) {
-  var html = $.parseHTML(data);
-  var urlArr = $('.athing .title a', $(html)).map(function () {
-    var currUrl = this.href;
-
-    if (currUrl && currUrl !== '') {
-      if (currUrl.substring(0, 19) === 'chrome-extension://') {
-        return null;
-      }
-      return currUrl.toLowerCase();
-    }
-    return null;
-  }).toArray();
-
-  var key = HN_DICT_URLS_TEMP_KEY;
-
-  var existingUrlArr = undefined;
-  if (i === 0) {
-    // First time -- start from scratch
-    existingUrlArr = [];
-  } else {
-    existingUrlArr = JSON.parse(localStorage[key]);
-  }
-
-  existingUrlArr = existingUrlArr.concat(urlArr);
-
-  if (i + 1 === MAX_NUM_PAGES) {
-    //  Last time -- overwrite
-    key = HN_DICT_URLS_KEY;
-    console.log('Done downloading HN');
-    localStorage[HN_LAST_UPDATED] = Date();
-  }
-
-  localStorage[key] = JSON.stringify(existingUrlArr);
-
-  // Empty temp key out
-  if (key === HN_DICT_URLS_KEY) {
-    localStorage[HN_DICT_URLS_TEMP_KEY] = '';
-    delete localStorage[HN_DICT_URLS_TEMP_KEY];
-  }
-}
-
 function downloadAllPages() {
-  var i = 0;
-  function downloadPage() {
-    if (i < MAX_NUM_PAGES) {
-      $.ajax({
-        'type': 'GET',
-        'url': PROVIDER_BASE_URL + PROVIDER_PAGE_RELATIVE_URL + (i + 1).toString(),
-        'dataType': 'html'
-      }).done(function (response) {
-        extractURLs(response, i);
-        i += 1;
-        downloadPage();
-      }).fail(function handleError(jqXHR, textStatus, errorThrown) {
-        console.warn('Could not download HN');
-        // console.log(jqXHR);
-        // console.log(textStatus);
-        // console.log(errorThrown);
-      });
-    }
-  }
-  downloadPage();
+  var ps = new _ProviderStore2['default']();
+  ps.updateAllTopUrlsForProviders();
 }
 
 function startDownloadDaemonJob() {
-  localStorage[HN_INTERVAL_ID] = setInterval(downloadAllPages, REFRESH_INTERVAL_MINUTES * 60000).toString();
+  localStorage[DOWNLOAD_DAEMON_INTERVAL_ID] = setInterval(downloadAllPages, REFRESH_INTERVAL_MINUTES * 60000).toString();
   downloadAllPages();
 }
 
 function clearDownloadDaemonJob() {
-  if (localStorage[HN_INTERVAL_ID] || localStorage[HN_INTERVAL_ID] === '0') {
-    clearInterval(parseInt(localStorage[HN_INTERVAL_ID], 10));
-    delete localStorage[HN_INTERVAL_ID];
+  if (localStorage[DOWNLOAD_DAEMON_INTERVAL_ID]) {
+    clearInterval(parseInt(localStorage[DOWNLOAD_DAEMON_INTERVAL_ID], 10));
+    delete localStorage[DOWNLOAD_DAEMON_INTERVAL_ID];
   }
 }
 
@@ -140,8 +77,10 @@ function resetDownloadDaemonJob() {
 }
 
 function checkAttemptRestart() {
-  if (localStorage[HN_LAST_UPDATED] && localStorage[ENABLE_TRACKING] === 'true') {
-    var previousDate = Date.parse(localStorage[HN_LAST_UPDATED]);
+  var provider = new _ProviderStore2['default']();
+  var last_update = provider.getLastUpdate(_ProviderStore.HN_PROVIDER_SLUG);
+  if (localStorage[ENABLE_TRACKING] === 'true' && last_update) {
+    var previousDate = Date.parse(last_update);
     var elapsedSecondsSinceLastUpdate = (new Date() - previousDate) / 1000;
 
     if (elapsedSecondsSinceLastUpdate > REFRESH_INTERVAL_MINUTES * 60 * REFRESH_RESTART_SCALE) {
@@ -149,32 +88,6 @@ function checkAttemptRestart() {
       resetDownloadDaemonJob();
     }
   }
-}
-
-function urlInTop(url) {
-  if (!url || url === '') {
-    return false;
-  }
-
-  var urlArr = getTopUrls();
-  var ur = new _UrlVariation2['default'](url.toLowerCase());
-  var urlRepresentations = ur.getAllUrlRepresentations();
-
-  if (!urlRepresentations || urlRepresentations.length === 0) {
-    return false;
-  }
-
-  for (var i = 0; i < urlRepresentations.length; i++) {
-    if (urlArr.indexOf(urlRepresentations[i]) !== -1) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function getTopUrls() {
-  return JSON.parse(localStorage[HN_DICT_URLS_KEY]);
 }
 
 // *********
@@ -252,8 +165,7 @@ function setWeight(url, multiplier, successCallback, failureCallback) {
 
 function loggedIn() {
   var uuid = localStorage.id;
-
-  return uuid && uuid !== '';
+  return uuid;
 }
 
 function getHoursElapsedToday() {
@@ -278,15 +190,21 @@ function login(email, password, callback) {
     localStorage[PAGES_RECORDED_TODAY] = responseData.num_urls_recorded_in_last_hours;
     localStorage[PAGES_RECORDED_START_DAY] = new Date().getDate().toString();
     setCurrentPageCount();
+
     // Configure the first time
-    if (localStorage[ENABLE_TRACKING] === undefined) {
-      localStorage[ENABLE_TRACKING] = 'true';
-    }
+    initFirstLoginDefaults();
+
     callback(responseData.uuid);
   }).fail(function () {
     // last_updated_id = null;
     callback('');
   });
+}
+
+function initFirstLoginDefaults() {
+  if (localStorage[ENABLE_TRACKING] === undefined) {
+    localStorage[ENABLE_TRACKING] = 'true';
+  }
 }
 
 function toggleTracking() {
@@ -304,6 +222,12 @@ function toggleTracking() {
 
 chrome.runtime.onMessage.addListener(function router(request, sender, sendResponse) {
   switch (request.message) {
+    case ADD_PROVIDER_MESSAGE:
+      new _ProviderStore2['default']().addProvider(request.provider_slug);
+      break;
+    case REMOVE_PROVIDER_MESSAGE:
+      new _ProviderStore2['default']().removeProvider(request.provider_slug);
+      break;
     case LOGIN_MESSAGE:
       login(request.email, request.password, function (uuid) {
         if (uuid && uuid !== '') {
@@ -329,7 +253,8 @@ chrome.runtime.onMessage.addListener(function router(request, sender, sendRespon
       var url = sender.tab.url;
       console.log(url);
       checkAttemptRestart();
-      if (localStorage[ENABLE_TRACKING] !== 'false' && urlInTop(url)) {
+      var top_urls = new _TopUrlStore2['default']();
+      if (localStorage[ENABLE_TRACKING] !== 'false' && top_urls.urlInTop(url)) {
         setWeight(url, WEIGHTS[DEFAULT_WEIGHT_KEY], function (response) {
           sendResponse({ 'success': 'true' });
         }, function (response) {

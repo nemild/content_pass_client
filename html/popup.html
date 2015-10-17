@@ -22,7 +22,8 @@
         <div class='header'>HN Top Posts Last Updated</div>
         <div id='last_updated_data'></div>
       </div>
-      <div class='center'><div class='btn btn-success' id='auto_tracking'>HN Tracking<br />On</div></div>
+      <div class='center'><div class='btn btn-success' id='auto_tracking'>Tracking<br />On</div></div>
+      <div id='show-providers'>Providers</div>
     </section>
 
     <section class="loginform cf">
@@ -64,11 +65,36 @@
         <div class='btn btn-primary tutorial-next-button' data-next-target='part5' data-current-target='part4'>Next</div>
       </div>
 
+
+
       <div id='part5' class='part'>
         <div class='logo logo-heading'>ContentPass</div>
         <div class='tutorial-body'>That's it. Ready to get started?</div>
         <div class='btn btn-primary tutorial-next-button' data-next-target='' data-current-target='part5'>Start</div>
       </div>
+    </div>
+
+    <div id='provider-section'>
+      <div>
+        We restrict the sites that are automatically sent to our server based on the communities you value. For now, we support the current top 100 or so posts on Hacker News and any subreddit:</div>
+
+
+      <table class='table provider-table'>
+        <tr>
+          <th>Site</th>
+          <th>Last Updated</th>
+          <th></th>
+        </tr>
+      </table>
+
+      <div>
+        <input id='add-provider-text' type='text' placeholder='Provider' class='form-control' style='font-size:24px; padding:7px;' required>
+        <div class='add btn btn-primary'>Add</div>
+      </div>
+      <br />
+      <div class='center'>
+        <div id='provider-edit-done' class='btn btn-primary'>Done</div>
+        </div>
     </div>
 
     <footer class='links'>
@@ -81,10 +107,10 @@
       <a href='mailto:nemild@gmail.com?subject=ContentPass%20Feedback' target='_blank'>Feedback</a>
       <div class='loading-frame'>
         <img class='loading' id='loggedin_loading' src='../images/loading.gif' alt='Loading'>
-        </div>
+      </div>
     </footer>
 
     <script type="text/javascript" src="../js/jquery-2.1.4.min.js"></script>
-    <script type="text/javascript" src="../js/src/popup.js"></script>
+    <script type="text/javascript" src="../js/src/frontend.js"></script>
   </body>
 </html>

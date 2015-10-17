@@ -1,28 +1,47 @@
+import ProviderStore from './ProviderStore';
+
 let dropDown;
 let loginForm;
+let providerSection;
 
 const LOGIN_MESSAGE = 'LOGIN';
 const LOGOUT_MESSAGE = 'LOGOUT';
 const TOGGLE_ENABLED_MESSAGE = 'TOGGLE_ENABLED';
-
+const ADD_PROVIDER_MESSAGE = 'ADD_PROVIDER';
+const REMOVE_PROVIDER_MESSAGE = 'REMOVE_PROVIDER';
 
 // Chrome Extension variables
 let bgPage;
 let runtime;
 
+function cleanDate(date) {
+  console.log(date);
+  console.log('here');
+  if (date && Date.parse(data)) {
+    const cleanDate = Date.parse(date);
+    return cleanDate.toLocaleDateString() + ' ' + cleanDate.toLocaleTimeString();
+  }
+
+  return '';
+}
+
 function configureLoggedInState() {
   loginForm.style.display = 'none';
   dropDown.style.display = 'initial';
-  if (localStorage.hn_last_updated && localStorage.hn_last_updated !== '') {
-    const cleanDate = new Date(localStorage.hn_last_updated);
-    $('#last_updated_data').text(
-      cleanDate.toLocaleDateString() + ' ' + cleanDate.toLocaleTimeString()
-    );
-    $('#last_updated_frame').show();
-  }
+  // if (localStorage.hn_last_updated && localStorage.hn_last_updated !== '') {
+  //   $('#last_updated_data').text(
+  //   cleanDate(localStorage.hn_last_updated)
+  //   );
+  //   $('#last_updated_frame').show();
+  // }
   $('#logout').show();
   $('#logged_in_frame').show();
   $('#updated_indicator_frame').show();
+  $('footer.links').show();
+
+  $('#logged_in_frame #show-providers').on('click', function() {
+    configureListProvidersPage();
+  });
 }
 
 function configureLoggedOutState() {
@@ -32,6 +51,45 @@ function configureLoggedOutState() {
   $('#last_updated_frame').hide();
   $('#logged_in_frame').hide();
   $('#updated_indicator_frame').hide();
+}
+
+function configureListProvidersPage() {
+  providerSection.style.display = 'initial';
+
+  dropDown.style.display = 'none';
+  loginForm.style.display = 'none';
+  $('#logout').hide();
+  $('#last_updated_frame').hide();
+  $('#logged_in_frame').hide();
+  $('#updated_indicator_frame').hide();
+  $('#provider-section #provider-edit-done').on('click', function() {
+    providerSection.style.display = 'none';
+    configureLoggedInState();
+    $('#provider-section .a-provider').remove();
+  });
+
+  $('footer.links').hide();
+
+  // Populate current table
+  let p = (new ProviderStore).getCurrentProviders();
+  for (let providerName in p) {
+    if (p.hasOwnProperty(providerName)) {
+      $('.provider-table').append(
+        `<tr class='${providerName} a-provider'><td>${providerName}</td><td class='provider-last-update-date'>${p[providerName]}</td><td><div class='remove' data-slug='${providerName}'>Remove</div></td></tr>`
+      );
+    }
+  }
+
+  $('#provider-section .remove').on('click', function(e) {
+    // bgPage.console.log('Remove slug' + $(this).parents('tr'));
+    runtime.sendMessage({
+      'message': REMOVE_PROVIDER_MESSAGE,
+      'provider_slug': $(this).data('slug')
+    },
+    function (response) {}
+                       );
+    $(this).parents('tr').fadeOut(500, function() { $(this).remove(); });
+  });
 }
 
 function determineCurrentTabHistory() {
@@ -53,10 +111,10 @@ function toggleTracking() {
 function setTrackingIndicator(set_on) {
   let $auto_tracking = $('#auto_tracking');
   if (set_on === true || set_on === undefined) {
-    $auto_tracking.html('HN Tracking<br />On');
+    $auto_tracking.html('Tracking<br />On');
     $auto_tracking.removeClass('btn-danger').addClass('btn-success');
   } else if (set_on === false) {
-    $auto_tracking.html('HN Tracking<br />Off');
+    $auto_tracking.html('Tracking<br />Off');
     $auto_tracking.addClass('btn-danger').removeClass('btn-success');
   }
 }
@@ -103,6 +161,8 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
 
   dropDown = document.getElementById('multiplier_selector');
   loginForm = document.forms.login;
+  providerSection = document.getElementById('provider-section');
+
   loginForm.addEventListener('submit', login);
 
   if (localStorage.id) {
@@ -110,6 +170,18 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
   } else {
     configureLoggedOutState();
   }
+
+  $('#provider-section .add').on('click', function(e) {
+    e.preventDefault();
+    bgPage.console.log($('#provider-section input[type="text"]').val());
+    runtime.sendMessage(
+      {
+        'message': ADD_PROVIDER_MESSAGE,
+        'provider_slug': $('#provider-section input[type="text"]').val()
+      },
+      function (response) {configureListProvidersPage(); $('#provider-section input[type="text"]').val('');}
+    );
+  });
 
   $('#logout').on('click', function logout(e) {
     e.preventDefault();
@@ -138,9 +210,6 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
       localStorage.tutorialShown = 'true';
     }
   });
-
-
-
 
   let et = localStorage.enable_tracking;
   setTrackingIndicator(

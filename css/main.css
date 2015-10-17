@@ -239,3 +239,36 @@ body {
 .no-account-msg a {
   text-decoration: none;
 }
+
+#provider-section {
+  display: none;
+}
+
+#provider-section .remove {
+  cursor: pointer;
+}
+
+#provider-section #add-provider-text {
+  width: 60%;
+  display: inline-block;
+}
+
+#provider-setion .add {
+  display: inline-block;
+}
+
+#provider-section #provider-edit-done {
+  cursor: pointer;
+}
+
+#provider-section .provider-last-update-date {
+  font-size:10px;
+}
+
+#provider-section #provider-edit-done {
+  cursor: pointer;
+}
+
+#logged_in_frame #show-providers {
+  cursor:pointer;
+}

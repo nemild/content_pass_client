@@ -48,430 +48,253 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-	var _UrlVariation = __webpack_require__(1);
-
-	var _UrlVariation2 = _interopRequireDefault(_UrlVariation);
-
-	var _ProviderStore = __webpack_require__(2);
+	var _ProviderStore = __webpack_require__(1);
 
 	var _ProviderStore2 = _interopRequireDefault(_ProviderStore);
 
-	var _TopUrlStore = __webpack_require__(3);
+	var dropDown = undefined;
+	var loginForm = undefined;
+	var providerSection = undefined;
 
-	var _TopUrlStore2 = _interopRequireDefault(_TopUrlStore);
-
-	// Server Constants
-	var BASE_SERVER_URL = 'https://content-pass.herokuapp.com/';
-	// const BASE_SERVER_URL = 'http://localhost:3000/'
-	var PAGE_VIEW_RELATIVE_URL = 'api/v1/page_views';
-	var LOGIN_RELATIVE_URL = 'api/v1/sessions';
-
-	// General refresh
-	var REFRESH_INTERVAL_MINUTES = 10;
-	var REFRESH_RESTART_SCALE = 6; // amount to scale REFRESH_INTERVAL_MINUTES to determine if the HN scraping job should be restarted
-
-	// Local Storage
-	var PAGES_RECORDED_TODAY = 'pages_recorded_today';
-	var PAGES_RECORDED_START_DAY = 'pages_recorded_start_day';
-	var ENABLE_TRACKING = 'enable_tracking';
-
-	var DOWNLOAD_DAEMON_INTERVAL_ID = 'interval_id';
-
-	// Icons
-	var PATH_FOR_POSTED_ICON = '../images/icon20.png';
-	var PATH_FOR_DEFAULT_ICON = '../images/icon20.png';
-
-	// Acceptable weights
-	var WEIGHTS = {
-	  '0X': 0,
-	  '1X': 1,
-	  '5X': 5
-	};
-	var DEFAULT_WEIGHT_KEY = '1X';
-
-	// Messages, these consts are defined in other files (for future reference, if changed)
 	var LOGIN_MESSAGE = 'LOGIN';
-	var PAGE_LOADED_MESSAGE = 'PAGE_LOADED';
 	var LOGOUT_MESSAGE = 'LOGOUT';
 	var TOGGLE_ENABLED_MESSAGE = 'TOGGLE_ENABLED';
 	var ADD_PROVIDER_MESSAGE = 'ADD_PROVIDER';
 	var REMOVE_PROVIDER_MESSAGE = 'REMOVE_PROVIDER';
-	// ******* End Constants ********
 
-	function downloadAllPages() {
-	  var ps = new _ProviderStore2['default']();
-	  ps.updateAllTopUrlsForProviders();
-	}
+	// Chrome Extension variables
+	var bgPage = undefined;
+	var runtime = undefined;
 
-	function startDownloadDaemonJob() {
-	  localStorage[DOWNLOAD_DAEMON_INTERVAL_ID] = setInterval(downloadAllPages, REFRESH_INTERVAL_MINUTES * 60000).toString();
-	  downloadAllPages();
-	}
-
-	function clearDownloadDaemonJob() {
-	  if (localStorage[DOWNLOAD_DAEMON_INTERVAL_ID]) {
-	    clearInterval(parseInt(localStorage[DOWNLOAD_DAEMON_INTERVAL_ID], 10));
-	    delete localStorage[DOWNLOAD_DAEMON_INTERVAL_ID];
-	  }
-	}
-
-	// Convenience helper provided as setInterval sometimes stops firing
-	// In theory, we shouldn't need this
-	function resetDownloadDaemonJob() {
-	  clearDownloadDaemonJob();
-	  startDownloadDaemonJob();
-	}
-
-	function checkAttemptRestart() {
-	  var provider = new _ProviderStore2['default']();
-	  var last_update = provider.getLastUpdate(_ProviderStore.HN_PROVIDER_SLUG);
-	  if (localStorage[ENABLE_TRACKING] === 'true' && last_update) {
-	    var previousDate = Date.parse(last_update);
-	    var elapsedSecondsSinceLastUpdate = (new Date() - previousDate) / 1000;
-
-	    if (elapsedSecondsSinceLastUpdate > REFRESH_INTERVAL_MINUTES * 60 * REFRESH_RESTART_SCALE) {
-	      console.info('Restarting Download Daemon');
-	      resetDownloadDaemonJob();
-	    }
-	  }
-	}
-
-	// *********
-	// Post a Page view
-	function postPageview(url, multiplier, successCallback, failureCallback) {
-	  var userInitiated = arguments[4] === undefined ? false : arguments[4];
-
-	  var uuid = localStorage.id;
-
-	  if (!loggedIn()) {
-	    return false;
+	function cleanDate(date) {
+	  console.log(date);
+	  console.log('here');
+	  if (date && Date.parse(data)) {
+	    var _cleanDate = Date.parse(date);
+	    return _cleanDate.toLocaleDateString() + ' ' + _cleanDate.toLocaleTimeString();
 	  }
 
-	  var data = JSON.stringify({
-	    'uuid': uuid,
-	    'url': url,
-	    'weight': multiplier,
-	    'user_initiated': userInitiated,
-	    'hours_elapsed_today': getHoursElapsedToday()
-	  });
-	  $.ajax({
-	    'url': BASE_SERVER_URL + PAGE_VIEW_RELATIVE_URL,
-	    'type': 'POST',
-	    'data': data,
-	    'contentType': 'application/json',
-	    'dataType': 'json'
-	  }).done(function (response, textStatus, xhr) {
-	    // Reset counter if the day change, probably should be done on interval not during post
-	    var currentDate = new Date().getDate();
-	    if (parseInt(localStorage[PAGES_RECORDED_START_DAY], 10) !== currentDate) {
-	      localStorage[PAGES_RECORDED_START_DAY] = currentDate.toString();
-	      localStorage[PAGES_RECORDED_TODAY] = '0';
-	    }
-
-	    if (xhr.status === 201) {
-	      chrome.browserAction.setIcon({ 'path': PATH_FOR_POSTED_ICON });
-	      localStorage[PAGES_RECORDED_TODAY] = (parseInt(localStorage[PAGES_RECORDED_TODAY], 10) + 1).toString();
-	      setTimeout(setDefaultIcon, 1000);
-	      setCurrentPageCount();
-	    } else if (xhr.status === 200) {
-	      if (response && response.created_in_recent_hours) {
-	        localStorage[PAGES_RECORDED_TODAY] = (parseInt(localStorage[PAGES_RECORDED_TODAY], 10) - 1).toString();
-	      }
-	      chrome.browserAction.setBadgeText({ 'text': 'Sent' });
-	      setTimeout(setCurrentPageCount, 1500);
-	    }
-	    if (successCallback) {
-	      successCallback();
-	    }
-	  }).fail(function (jqXHR, textStatus, errorThrown) {
-	    console.warn('Could not post page view');
-
-	    if (failureCallback) {
-	      failureCallback();
-	    }
-	  });
-	}
-
-	function setDefaultIcon() {
-	  chrome.browserAction.setIcon({ 'path': PATH_FOR_DEFAULT_ICON });
-	}
-
-	function setCurrentPageCount() {
-	  chrome.browserAction.setBadgeText({ 'text': localStorage[PAGES_RECORDED_TODAY] });
-	}
-
-	function setWeight(url, multiplier, successCallback, failureCallback) {
-	  var userInitiated = arguments[4] === undefined ? false : arguments[4];
-
-	  if (!loggedIn()) {
-	    return false;
-	  }
-	  postPageview(url, multiplier, successCallback, failureCallback, userInitiated);
-	}
-
-	function loggedIn() {
-	  var uuid = localStorage.id;
-	  return uuid;
-	}
-
-	function getHoursElapsedToday() {
-	  var d = new Date();
-	  return d.getHours() + d.getMinutes() / 60;
-	}
-
-	function login(email, password, callback) {
-	  var data = JSON.stringify({
-	    'email': email,
-	    'password': password,
-	    'view_count_in_last_hours': getHoursElapsedToday()
-	  });
-
-	  $.ajax({
-	    'url': BASE_SERVER_URL + LOGIN_RELATIVE_URL,
-	    'type': 'POST',
-	    'data': data,
-	    'contentType': 'application/json',
-	    'dataType': 'json'
-	  }).done(function (responseData) {
-	    localStorage[PAGES_RECORDED_TODAY] = responseData.num_urls_recorded_in_last_hours;
-	    localStorage[PAGES_RECORDED_START_DAY] = new Date().getDate().toString();
-	    setCurrentPageCount();
-
-	    // Configure the first time
-	    initFirstLoginDefaults();
-
-	    callback(responseData.uuid);
-	  }).fail(function () {
-	    // last_updated_id = null;
-	    callback('');
-	  });
-	}
-
-	function initFirstLoginDefaults() {
-	  if (localStorage[ENABLE_TRACKING] === undefined) {
-	    localStorage[ENABLE_TRACKING] = 'true';
-	  }
-	}
-
-	function toggleTracking() {
-	  if (localStorage[ENABLE_TRACKING] === 'false') {
-	    localStorage[ENABLE_TRACKING] = 'true';
-	    startDownloadDaemonJob();
-	    return true;
-	  } else if (localStorage[ENABLE_TRACKING] === 'true') {
-	    clearDownloadDaemonJob();
-	    localStorage[ENABLE_TRACKING] = 'false';
-	    return false;
-	  }
 	  return '';
 	}
 
-	chrome.runtime.onMessage.addListener(function router(request, sender, sendResponse) {
-	  switch (request.message) {
-	    case ADD_PROVIDER_MESSAGE:
-	      new _ProviderStore2['default']().addProvider(request.provider_slug);
-	      break;
-	    case REMOVE_PROVIDER_MESSAGE:
-	      new _ProviderStore2['default']().removeProvider(request.provider_slug);
-	      break;
-	    case LOGIN_MESSAGE:
-	      login(request.email, request.password, function (uuid) {
-	        if (uuid && uuid !== '') {
-	          localStorage.id = uuid;
-	        }
-	        sendResponse({
-	          'id': uuid
-	        });
-	        if (localStorage.id) {
-	          startDownloadDaemonJob();
-	        }
-	      });
-	      return true;
-	    case LOGOUT_MESSAGE:
-	      delete localStorage.id;
-	      clearDownloadDaemonJob();
-	      delete localStorage[PAGES_RECORDED_TODAY];
-	      chrome.browserAction.setBadgeText({ 'text': '' });
+	function configureLoggedInState() {
+	  loginForm.style.display = 'none';
+	  dropDown.style.display = 'initial';
+	  // if (localStorage.hn_last_updated && localStorage.hn_last_updated !== '') {
+	  //   $('#last_updated_data').text(
+	  //   cleanDate(localStorage.hn_last_updated)
+	  //   );
+	  //   $('#last_updated_frame').show();
+	  // }
+	  $('#logout').show();
+	  $('#logged_in_frame').show();
+	  $('#updated_indicator_frame').show();
+	  $('footer.links').show();
 
-	      sendResponse({ 'hello': 'world' });
-	      break;
-	    case PAGE_LOADED_MESSAGE:
-	      var url = sender.tab.url;
-	      console.log(url);
-	      checkAttemptRestart();
-	      var top_urls = new _TopUrlStore2['default']();
-	      if (localStorage[ENABLE_TRACKING] !== 'false' && top_urls.urlInTop(url)) {
-	        setWeight(url, WEIGHTS[DEFAULT_WEIGHT_KEY], function (response) {
-	          sendResponse({ 'success': 'true' });
-	        }, function (response) {
-	          sendResponse({ 'success': 'false' });
-	        });
-	        console.log('Sent to server');
-	      } else {
-	        // Ignored
-	        console.log('Not sent');
-	      }
-	      break;
-	    case TOGGLE_ENABLED_MESSAGE:
-	      sendResponse({ 'tracking_on': toggleTracking() });
-	      break;
-	    default:
-	      if (WEIGHTS.hasOwnProperty(request.message)) {
-	        var _url = request.url;
-	        setWeight(_url, WEIGHTS[request.message], function (response) {
-	          sendResponse({ 'success': 'true' });
-	        }, function (response) {
-	          sendResponse({ 'success': 'false' });
-	        }, true);
-	        return true;
-	      } else {
-	        console.warn('Bad weight');
-	      }
-	      break;
+	  $('#logged_in_frame #show-providers').on('click', function () {
+	    configureListProvidersPage();
+	  });
+	}
+
+	function configureLoggedOutState() {
+	  dropDown.style.display = 'none';
+	  loginForm.style.display = 'initial';
+	  $('#logout').hide();
+	  $('#last_updated_frame').hide();
+	  $('#logged_in_frame').hide();
+	  $('#updated_indicator_frame').hide();
+	}
+
+	function configureListProvidersPage() {
+	  providerSection.style.display = 'initial';
+
+	  dropDown.style.display = 'none';
+	  loginForm.style.display = 'none';
+	  $('#logout').hide();
+	  $('#last_updated_frame').hide();
+	  $('#logged_in_frame').hide();
+	  $('#updated_indicator_frame').hide();
+	  $('#provider-section #provider-edit-done').on('click', function () {
+	    providerSection.style.display = 'none';
+	    configureLoggedInState();
+	    $('#provider-section .a-provider').remove();
+	  });
+
+	  $('footer.links').hide();
+
+	  // Populate current table
+	  var p = new _ProviderStore2['default']().getCurrentProviders();
+	  for (var providerName in p) {
+	    if (p.hasOwnProperty(providerName)) {
+	      $('.provider-table').append('<tr class=\'' + providerName + ' a-provider\'><td>' + providerName + '</td><td class=\'provider-last-update-date\'>' + p[providerName] + '</td><td><div class=\'remove\' data-slug=\'' + providerName + '\'>Remove</div></td></tr>');
+	    }
 	  }
+
+	  $('#provider-section .remove').on('click', function (e) {
+	    // bgPage.console.log('Remove slug' + $(this).parents('tr'));
+	    runtime.sendMessage({
+	      'message': REMOVE_PROVIDER_MESSAGE,
+	      'provider_slug': $(this).data('slug')
+	    }, function (response) {});
+	    $(this).parents('tr').fadeOut(500, function () {
+	      $(this).remove();
+	    });
+	  });
+	}
+
+	function determineCurrentTabHistory() {
+	  chrome.tabs.getCurrent(function (tab) {
+	    console.log(tab.url);
+	  });
+	}
+
+	function toggleTracking() {
+	  runtime.sendMessage({
+	    'message': TOGGLE_ENABLED_MESSAGE
+	  }, function handleToggleTracking(response) {
+	    setTrackingIndicator(response.tracking_on);
+	  });
+	}
+
+	function setTrackingIndicator(set_on) {
+	  var $auto_tracking = $('#auto_tracking');
+	  if (set_on === true || set_on === undefined) {
+	    $auto_tracking.html('Tracking<br />On');
+	    $auto_tracking.removeClass('btn-danger').addClass('btn-success');
+	  } else if (set_on === false) {
+	    $auto_tracking.html('Tracking<br />Off');
+	    $auto_tracking.addClass('btn-danger').removeClass('btn-success');
+	  }
+	}
+
+	function login(e) {
+	  e.preventDefault();
+
+	  var email = loginForm.usermail.value;
+	  var password = loginForm.password.value;
+
+	  $('#login_loading').fadeIn(200);
+	  runtime.sendMessage({
+	    'message': LOGIN_MESSAGE,
+	    'email': email,
+	    'password': password
+	  }, function handleLoginRequest(response) {
+	    $('#login_loading').fadeOut(200);
+	    if (response.id) {
+	      configureLoggedInState();
+	      if (localStorage.tutorialShown === undefined) {
+	        $('#tutorial-frame').fadeIn();
+	      }
+	    } else {
+	      var errorFlash = $('#login-flash');
+	      errorFlash.text('Sorry, your username or password was invalid').fadeIn();
+	    }
+	  });
+	}
+
+	function hideUpdatedIndicator() {
+	  $('#updated_indicator').fadeOut(500);
+	}
+
+	function hideUpdatedIndicatorError() {
+	  $('#updated_indicator_error').fadeOut(500);
+	}
+
+	document.addEventListener('DOMContentLoaded', function loadPage() {
+	  bgPage = chrome.extension.getBackgroundPage();
+	  runtime = chrome.runtime;
+
+	  dropDown = document.getElementById('multiplier_selector');
+	  loginForm = document.forms.login;
+	  providerSection = document.getElementById('provider-section');
+
+	  loginForm.addEventListener('submit', login);
+
+	  if (localStorage.id) {
+	    configureLoggedInState();
+	  } else {
+	    configureLoggedOutState();
+	  }
+
+	  $('#provider-section .add').on('click', function (e) {
+	    e.preventDefault();
+	    bgPage.console.log($('#provider-section input[type="text"]').val());
+	    runtime.sendMessage({
+	      'message': ADD_PROVIDER_MESSAGE,
+	      'provider_slug': $('#provider-section input[type="text"]').val()
+	    }, function (response) {
+	      configureListProvidersPage();$('#provider-section input[type="text"]').val('');
+	    });
+	  });
+
+	  $('#logout').on('click', function logout(e) {
+	    e.preventDefault();
+
+	    runtime.sendMessage({
+	      'message': LOGOUT_MESSAGE
+	    }, function handleLogoutRequest(response) {
+	      configureLoggedOutState();
+	    });
+	  });
+
+	  $('#auto_tracking').on('click', function (e) {
+	    toggleTracking();
+	  });
+
+	  $('.tutorial-next-button').on('click', function () {
+	    var next = $(this).data('next-target');
+	    var current = $(this).data('current-target');
+
+	    $('#' + current).fadeOut();
+	    if (next !== '') {
+	      $('#' + next).fadeIn();
+	    } else {
+	      $('#tutorial-frame').fadeOut();
+	      localStorage.tutorialShown = 'true';
+	    }
+	  });
+
+	  var et = localStorage.enable_tracking;
+	  setTrackingIndicator(et === 'true' || et === undefined ? true : false);
+
+	  $('.content-pass-single-action').click(function singleAction() {
+	    var _this = this;
+
+	    if (!$(this).hasClass('selected')) {
+	      (function () {
+	        $('.content-pass-single-action').removeClass('selected');
+	        $(_this).addClass('selected');
+
+	        // Add setting code here
+	        var multiplier = $(_this).text();
+
+	        $('#loggedin_loading').fadeIn(200);
+	        // Grab URL
+	        chrome.tabs.query({
+	          'active': true,
+	          'currentWindow': true
+	        }, function sendMultiplierMessage(tabs) {
+	          chrome.runtime.sendMessage({
+	            'message': multiplier,
+	            'url': tabs[0].url
+	          }, function callback(response) {
+	            $('#loggedin_loading').fadeOut(200);
+	            if (response.success === 'true') {
+	              $('#updated_indicator').text('Set to ' + multiplier.toString()).fadeIn(200);
+	              setTimeout(hideUpdatedIndicator, 1000);
+	            } else if (response.success === 'false') {
+	              $('#updated_indicator_error').text('Could not set to ' + multiplier.toString()).fadeIn(200);
+	              setTimeout(hideUpdatedIndicatorError, 1000);
+	            }
+	          });
+	        });
+	      })();
+	    }
+	  });
 	});
 
 /***/ },
 /* 1 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	Object.defineProperty(exports, '__esModule', {
-	  value: true
-	});
-
-	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-
-	var _default = (function () {
-	  var _class = function _default(url) {
-	    _classCallCheck(this, _class);
-
-	    if (url) {
-	      this.url = url.toLowerCase();
-	      this.parsedUrl = null;
-	      if (this.url) {
-	        this.parsedUrl = parseUri(this.url);
-	      }
-	    }
-	  };
-
-	  _createClass(_class, [{
-	    key: 'getAllUrlRepresentations',
-
-	    // Public
-	    value: function getAllUrlRepresentations() {
-	      var p = this.parsedUrl;
-
-	      if (!this.url || this.url === '' || !this.parsedUrl) {
-	        return null;
-	      }
-
-	      var urlRepresentations = [this.url];
-	      var altProtocolUrl = this.alternateProtocolUrl(this.url);
-	      if (altProtocolUrl) {
-	        urlRepresentations.push(altProtocolUrl);
-	      }
-
-	      var withoutQuery = this.withoutQueryParameters();
-	      if (withoutQuery) {
-	        urlRepresentations = urlRepresentations.concat(withoutQuery);
-	      }
-
-	      return urlRepresentations;
-	    }
-	  }, {
-	    key: 'withoutQueryParameters',
-
-	    // Private
-	    value: function withoutQueryParameters() {
-	      var p = this.parsedUrl;
-	      var results = [];
-
-	      if (p.query) {
-	        var withoutQueryParams = undefined;
-	        withoutQueryParams = p.protocol + '://' + p.host;
-	        if (p.port) {
-	          withoutQueryParams += ':' + p.port;
-	        }
-	        withoutQueryParams += p.path;
-	        if (p.anchor) {
-	          withoutQueryParams += '#' + p.anchor;
-	        }
-	        results.push(withoutQueryParams); // without query parameters
-
-	        var altProtocolUrl = this.alternateProtocolUrl(withoutQueryParams);
-	        if (altProtocolUrl) {
-	          results.push(altProtocolUrl);
-	        }
-
-	        return results;
-	      }
-
-	      return null;
-	    }
-	  }, {
-	    key: 'alternateProtocolUrl',
-
-	    // Add HTTP representation for HTTPS, and vice versa
-	    value: function alternateProtocolUrl(url) {
-	      var p = parseUri(url);
-
-	      if (!p) {
-	        return null;
-	      }
-
-	      if (p.protocol === 'https') {
-	        return url.replace('https', 'http');
-	      } else if (p.protocol === 'http') {
-	        return url.replace('http', 'https');
-	      }
-	      return null;
-	    }
-	  }]);
-
-	  return _class;
-	})();
-
-	exports['default'] = _default;
-
-	// parseUri 1.2.2
-	// (c) Steven Levithan <stevenlevithan.com>
-	// MIT License
-	function parseUri(str) {
-	  var o = parseUri.options,
-	      m = o.parser[o.strictMode ? 'strict' : 'loose'].exec(str),
-	      uri = {},
-	      i = 14;
-
-	  while (i--) uri[o.key[i]] = m[i] || '';
-
-	  uri[o.q.name] = {};
-	  uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
-	    if ($1) uri[o.q.name][$1] = $2;
-	  });
-
-	  return uri;
-	};
-
-	parseUri.options = {
-	  strictMode: false,
-	  key: ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'],
-	  q: {
-	    name: 'queryKey',
-	    parser: /(?:^|&)([^&=]*)=?([^&]*)/g
-	  },
-	  parser: {
-	    strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-	    loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
-	  }
-	};
-	module.exports = exports['default'];
-
-/***/ },
-/* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -486,7 +309,7 @@
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var _TopUrlStore = __webpack_require__(3);
+	var _TopUrlStore = __webpack_require__(2);
 
 	var _TopUrlStore2 = _interopRequireDefault(_TopUrlStore);
 
@@ -627,7 +450,7 @@
 	exports['default'] = _default;
 
 /***/ },
-/* 3 */
+/* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -642,11 +465,11 @@
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var _UrlVariation = __webpack_require__(1);
+	var _UrlVariation = __webpack_require__(3);
 
 	var _UrlVariation2 = _interopRequireDefault(_UrlVariation);
 
-	var _ProviderStore = __webpack_require__(2);
+	var _ProviderStore = __webpack_require__(1);
 
 	var _ProviderStore2 = _interopRequireDefault(_ProviderStore);
 
@@ -785,6 +608,145 @@
 	  });
 
 	  return uri;
+	};
+	module.exports = exports['default'];
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+	var _default = (function () {
+	  var _class = function _default(url) {
+	    _classCallCheck(this, _class);
+
+	    if (url) {
+	      this.url = url.toLowerCase();
+	      this.parsedUrl = null;
+	      if (this.url) {
+	        this.parsedUrl = parseUri(this.url);
+	      }
+	    }
+	  };
+
+	  _createClass(_class, [{
+	    key: 'getAllUrlRepresentations',
+
+	    // Public
+	    value: function getAllUrlRepresentations() {
+	      var p = this.parsedUrl;
+
+	      if (!this.url || this.url === '' || !this.parsedUrl) {
+	        return null;
+	      }
+
+	      var urlRepresentations = [this.url];
+	      var altProtocolUrl = this.alternateProtocolUrl(this.url);
+	      if (altProtocolUrl) {
+	        urlRepresentations.push(altProtocolUrl);
+	      }
+
+	      var withoutQuery = this.withoutQueryParameters();
+	      if (withoutQuery) {
+	        urlRepresentations = urlRepresentations.concat(withoutQuery);
+	      }
+
+	      return urlRepresentations;
+	    }
+	  }, {
+	    key: 'withoutQueryParameters',
+
+	    // Private
+	    value: function withoutQueryParameters() {
+	      var p = this.parsedUrl;
+	      var results = [];
+
+	      if (p.query) {
+	        var withoutQueryParams = undefined;
+	        withoutQueryParams = p.protocol + '://' + p.host;
+	        if (p.port) {
+	          withoutQueryParams += ':' + p.port;
+	        }
+	        withoutQueryParams += p.path;
+	        if (p.anchor) {
+	          withoutQueryParams += '#' + p.anchor;
+	        }
+	        results.push(withoutQueryParams); // without query parameters
+
+	        var altProtocolUrl = this.alternateProtocolUrl(withoutQueryParams);
+	        if (altProtocolUrl) {
+	          results.push(altProtocolUrl);
+	        }
+
+	        return results;
+	      }
+
+	      return null;
+	    }
+	  }, {
+	    key: 'alternateProtocolUrl',
+
+	    // Add HTTP representation for HTTPS, and vice versa
+	    value: function alternateProtocolUrl(url) {
+	      var p = parseUri(url);
+
+	      if (!p) {
+	        return null;
+	      }
+
+	      if (p.protocol === 'https') {
+	        return url.replace('https', 'http');
+	      } else if (p.protocol === 'http') {
+	        return url.replace('http', 'https');
+	      }
+	      return null;
+	    }
+	  }]);
+
+	  return _class;
+	})();
+
+	exports['default'] = _default;
+
+	// parseUri 1.2.2
+	// (c) Steven Levithan <stevenlevithan.com>
+	// MIT License
+	function parseUri(str) {
+	  var o = parseUri.options,
+	      m = o.parser[o.strictMode ? 'strict' : 'loose'].exec(str),
+	      uri = {},
+	      i = 14;
+
+	  while (i--) uri[o.key[i]] = m[i] || '';
+
+	  uri[o.q.name] = {};
+	  uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+	    if ($1) uri[o.q.name][$1] = $2;
+	  });
+
+	  return uri;
+	};
+
+	parseUri.options = {
+	  strictMode: false,
+	  key: ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'],
+	  q: {
+	    name: 'queryKey',
+	    parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+	  },
+	  parser: {
+	    strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+	    loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+	  }
 	};
 	module.exports = exports['default'];
 
