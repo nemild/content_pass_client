@@ -1,6 +1,7 @@
-import UrlVariation from './UrlVariation';
+// import UrlVariation from './UrlVariation';
 import ProviderStore, {HN_PROVIDER_SLUG} from './ProviderStore';
 import TopUrlStore from './TopUrlStore';
+import SubmittedUrlStore from './SubmittedUrlStore';
 
 // Server Constants
 const BASE_SERVER_URL = 'https://content-pass.herokuapp.com/';
@@ -9,20 +10,21 @@ const PAGE_VIEW_RELATIVE_URL = 'api/v1/page_views';
 const LOGIN_RELATIVE_URL = 'api/v1/sessions';
 
 // General refresh
-const REFRESH_INTERVAL_MINUTES = 10;
+const REFRESH_INTERVAL_MINUTES = 20;
 const REFRESH_RESTART_SCALE = 6; // amount to scale REFRESH_INTERVAL_MINUTES to determine if the HN scraping job should be restarted
 
 // Local Storage
 const PAGES_RECORDED_TODAY = 'pages_recorded_today';
 const PAGES_RECORDED_START_DAY = 'pages_recorded_start_day';
 const ENABLE_TRACKING = 'enable_tracking';
-
+const LAST_EXPIRED_SUBMITTED_URL_STORE = 'last_expired_submitted_url_store';
 const DOWNLOAD_DAEMON_INTERVAL_ID = 'interval_id';
 
 // Icons
 const PATH_FOR_POSTED_ICON =  '../images/icon20.png';
 const PATH_FOR_DEFAULT_ICON = '../images/icon20.png';
 
+const MINS_BETWEEN_SUBMITTED_EXPIRATION_CALLS = 60 * 12;
 // Acceptable weights
 const WEIGHTS = {
   '0X': 0,
@@ -40,9 +42,33 @@ const ADD_PROVIDER_MESSAGE = 'ADD_PROVIDER';
 const REMOVE_PROVIDER_MESSAGE = 'REMOVE_PROVIDER';
 // ******* End Constants ********
 
+function loggedIn() {
+  const uuid = localStorage.id;
+  return uuid;
+}
+
+function getHoursElapsedToday() {
+  const d = new Date();
+  return d.getHours() + d.getMinutes() / 60.0;
+}
+
 function downloadAllPages() {
   let ps = new ProviderStore;
   ps.updateAllTopUrlsForProviders();
+}
+
+function setDefaultIcon() {
+  chrome.browserAction.setIcon({'path': PATH_FOR_DEFAULT_ICON});
+}
+
+function setCurrentPageCount() {
+  chrome.browserAction.setBadgeText({'text': localStorage[PAGES_RECORDED_TODAY]});
+}
+
+function initFirstLoginDefaults() {
+    if (localStorage[ENABLE_TRACKING] === undefined) {
+      localStorage[ENABLE_TRACKING] = 'true';
+    }
 }
 
 function startDownloadDaemonJob() {
@@ -69,12 +95,12 @@ function resetDownloadDaemonJob() {
 
 function checkAttemptRestart() {
   const provider = new ProviderStore();
-  const last_update = provider.getLastUpdate(HN_PROVIDER_SLUG);
-  if (localStorage[ENABLE_TRACKING] === 'true' && last_update) {
-    const previousDate = Date.parse(last_update);
+  const lastUpdate = provider.getLastUpdate(HN_PROVIDER_SLUG);
+  if (localStorage[ENABLE_TRACKING] === 'true' && lastUpdate) {
+    const previousDate = Date.parse(lastUpdate);
     const elapsedSecondsSinceLastUpdate = ( new Date - previousDate ) / 1000;
 
-    if (elapsedSecondsSinceLastUpdate > (REFRESH_INTERVAL_MINUTES * 60 * REFRESH_RESTART_SCALE) ) {
+    if (elapsedSecondsSinceLastUpdate > REFRESH_INTERVAL_MINUTES * 60 * REFRESH_RESTART_SCALE ) {
       console.info('Restarting Download Daemon');
       resetDownloadDaemonJob();
     }
@@ -103,7 +129,7 @@ function postPageview(url, multiplier, successCallback, failureCallback, userIni
     'data': data,
     'contentType': 'application/json',
     'dataType': 'json'
-  }).done(function(response, textStatus, xhr) {
+  }).done(function pageviewPostSuccessCallback(response, textStatus, xhr) {
     // Reset counter if the day change, probably should be done on interval not during post
     let currentDate = (new Date()).getDate();
     if (parseInt(localStorage[PAGES_RECORDED_START_DAY], 10) !== currentDate) {
@@ -116,31 +142,41 @@ function postPageview(url, multiplier, successCallback, failureCallback, userIni
       localStorage[PAGES_RECORDED_TODAY] = (parseInt( localStorage[PAGES_RECORDED_TODAY], 10 ) + 1).toString();
       setTimeout(setDefaultIcon, 1000);
       setCurrentPageCount();
+      setAndExpireUrlStore(url, multiplier);
     } else if (xhr.status === 200) {
       if (response && response.created_in_recent_hours) {
         localStorage[PAGES_RECORDED_TODAY] = (parseInt( localStorage[PAGES_RECORDED_TODAY], 10 ) - 1).toString();
       }
       chrome.browserAction.setBadgeText({'text': 'Sent'});
       setTimeout(setCurrentPageCount, 1500);
+      setAndExpireUrlStore(url, multiplier);
     }
+
     if (successCallback) {
       successCallback();
     }
-  }).fail(function(jqXHR, textStatus, errorThrown ) {
+  }).fail(function pageviewPostFailureCallback(jqXHR, textStatus, errorThrown ) {
     console.warn('Could not post page view');
 
     if (failureCallback) {
+      setAndExpireUrlStore(null, null);
       failureCallback();
     }
   });
 }
 
-function setDefaultIcon() {
-  chrome.browserAction.setIcon({'path': PATH_FOR_DEFAULT_ICON});
-}
+function setAndExpireUrlStore(url, weight) {
+  let sus = null;
+  if (url && (weight || weight === 0)) {
+    sus = new SubmittedUrlStore();
+    sus.setSubmittedUrl(url, multiplier);
+  }
 
-function setCurrentPageCount() {
-  chrome.browserAction.setBadgeText({'text': localStorage[PAGES_RECORDED_TODAY]});
+  if(!localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE] || new Date(localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE]) + MINS_BETWEEN_SUBMITTED_EXPIRATION_CALLS * 60 * 1000 < (new Date) ) {
+     if (!sus) { sus = new SubmittedUrlStore(); }
+     sus.expireSubmittedUrls();
+     localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE] = new Date;
+  }
 }
 
 function setWeight(url, multiplier, successCallback, failureCallback, userInitiated = false) {
@@ -148,16 +184,6 @@ function setWeight(url, multiplier, successCallback, failureCallback, userInitia
     return false;
   }
   postPageview(url, multiplier, successCallback, failureCallback, userInitiated);
-}
-
-function loggedIn() {
-  const uuid = localStorage.id;
-  return uuid;
-}
-
-function getHoursElapsedToday() {
-  const d = new Date();
-  return d.getHours() + d.getMinutes() / 60.0;
 }
 
 function login(email, password, callback) {
@@ -173,7 +199,7 @@ function login(email, password, callback) {
     'data': data,
     'contentType': 'application/json',
     'dataType': 'json'
-  }).done(function(responseData) {
+  }).done(function loginSuccessCallback(responseData) {
     localStorage[PAGES_RECORDED_TODAY] = responseData.num_urls_recorded_in_last_hours;
     localStorage[PAGES_RECORDED_START_DAY] = ((new Date()).getDate()).toString();
     setCurrentPageCount();
@@ -182,16 +208,10 @@ function login(email, password, callback) {
     initFirstLoginDefaults();
 
     callback(responseData.uuid);
-  }).fail(function() {
+  }).fail(function loginFailureCallback() {
     // last_updated_id = null;
     callback('');
   });
-}
-
-function initFirstLoginDefaults() {
-    if (localStorage[ENABLE_TRACKING] === undefined) {
-      localStorage[ENABLE_TRACKING] = 'true';
-    }
 }
 
 function toggleTracking() {
@@ -220,7 +240,7 @@ chrome.runtime.onMessage.addListener(
         login(
           request.email,
           request.password,
-          function(uuid) {
+          function loginCallback(uuid) {
             if (uuid && uuid !== '') {
               localStorage.id = uuid;
             }
@@ -241,18 +261,18 @@ chrome.runtime.onMessage.addListener(
         sendResponse({'hello': 'world'});
         break;
       case PAGE_LOADED_MESSAGE:
-        let url = sender.tab.url;
+        const url = sender.tab.url;
         console.log(url);
         checkAttemptRestart();
-        let top_urls = new TopUrlStore();
-        if (localStorage[ENABLE_TRACKING] !== 'false' && top_urls.urlInTop(url)) {
+        const topUrls = new TopUrlStore();
+        if (localStorage[ENABLE_TRACKING] !== 'false' && topUrls.urlInTop(url)) {
           setWeight(
             url,
             WEIGHTS[DEFAULT_WEIGHT_KEY],
-            function(response) {
+            function pageLoadedSuccessCallback(response) {
               sendResponse({'success': 'true'});
             },
-            function(response) {
+            function pageLoadedFailureCallback(response) {
               sendResponse({'success': 'false'});
             }
           );
@@ -267,14 +287,14 @@ chrome.runtime.onMessage.addListener(
         break;
       default:
         if (WEIGHTS.hasOwnProperty(request.message)) {
-        let url = request.url;
+        const url = request.url;
         setWeight(
           url,
           WEIGHTS[request.message],
-          function(response) {
+          function pageLoadedSuccessCallback(response) {
             sendResponse({'success': 'true'});
           },
-          function(response) {
+          function pageLoadedFailureCallback(response) {
             sendResponse({'success': 'false'});
           },
           true);

@@ -44,21 +44,22 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
+	// import UrlVariation from './UrlVariation';
 	'use strict';
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-	var _UrlVariation = __webpack_require__(1);
-
-	var _UrlVariation2 = _interopRequireDefault(_UrlVariation);
-
-	var _ProviderStore = __webpack_require__(2);
+	var _ProviderStore = __webpack_require__(1);
 
 	var _ProviderStore2 = _interopRequireDefault(_ProviderStore);
 
-	var _TopUrlStore = __webpack_require__(3);
+	var _TopUrlStore = __webpack_require__(2);
 
 	var _TopUrlStore2 = _interopRequireDefault(_TopUrlStore);
+
+	var _SubmittedUrlStore = __webpack_require__(5);
+
+	var _SubmittedUrlStore2 = _interopRequireDefault(_SubmittedUrlStore);
 
 	// Server Constants
 	var BASE_SERVER_URL = 'https://content-pass.herokuapp.com/';
@@ -67,20 +68,21 @@
 	var LOGIN_RELATIVE_URL = 'api/v1/sessions';
 
 	// General refresh
-	var REFRESH_INTERVAL_MINUTES = 10;
+	var REFRESH_INTERVAL_MINUTES = 20;
 	var REFRESH_RESTART_SCALE = 6; // amount to scale REFRESH_INTERVAL_MINUTES to determine if the HN scraping job should be restarted
 
 	// Local Storage
 	var PAGES_RECORDED_TODAY = 'pages_recorded_today';
 	var PAGES_RECORDED_START_DAY = 'pages_recorded_start_day';
 	var ENABLE_TRACKING = 'enable_tracking';
-
+	var LAST_EXPIRED_SUBMITTED_URL_STORE = 'last_expired_submitted_url_store';
 	var DOWNLOAD_DAEMON_INTERVAL_ID = 'interval_id';
 
 	// Icons
 	var PATH_FOR_POSTED_ICON = '../images/icon20.png';
 	var PATH_FOR_DEFAULT_ICON = '../images/icon20.png';
 
+	var MINS_BETWEEN_SUBMITTED_EXPIRATION_CALLS = 60 * 12;
 	// Acceptable weights
 	var WEIGHTS = {
 	  '0X': 0,
@@ -98,9 +100,33 @@
 	var REMOVE_PROVIDER_MESSAGE = 'REMOVE_PROVIDER';
 	// ******* End Constants ********
 
+	function loggedIn() {
+	  var uuid = localStorage.id;
+	  return uuid;
+	}
+
+	function getHoursElapsedToday() {
+	  var d = new Date();
+	  return d.getHours() + d.getMinutes() / 60;
+	}
+
 	function downloadAllPages() {
 	  var ps = new _ProviderStore2['default']();
 	  ps.updateAllTopUrlsForProviders();
+	}
+
+	function setDefaultIcon() {
+	  chrome.browserAction.setIcon({ 'path': PATH_FOR_DEFAULT_ICON });
+	}
+
+	function setCurrentPageCount() {
+	  chrome.browserAction.setBadgeText({ 'text': localStorage[PAGES_RECORDED_TODAY] });
+	}
+
+	function initFirstLoginDefaults() {
+	  if (localStorage[ENABLE_TRACKING] === undefined) {
+	    localStorage[ENABLE_TRACKING] = 'true';
+	  }
 	}
 
 	function startDownloadDaemonJob() {
@@ -124,9 +150,9 @@
 
 	function checkAttemptRestart() {
 	  var provider = new _ProviderStore2['default']();
-	  var last_update = provider.getLastUpdate(_ProviderStore.HN_PROVIDER_SLUG);
-	  if (localStorage[ENABLE_TRACKING] === 'true' && last_update) {
-	    var previousDate = Date.parse(last_update);
+	  var lastUpdate = provider.getLastUpdate(_ProviderStore.HN_PROVIDER_SLUG);
+	  if (localStorage[ENABLE_TRACKING] === 'true' && lastUpdate) {
+	    var previousDate = Date.parse(lastUpdate);
 	    var elapsedSecondsSinceLastUpdate = (new Date() - previousDate) / 1000;
 
 	    if (elapsedSecondsSinceLastUpdate > REFRESH_INTERVAL_MINUTES * 60 * REFRESH_RESTART_SCALE) {
@@ -160,7 +186,7 @@
 	    'data': data,
 	    'contentType': 'application/json',
 	    'dataType': 'json'
-	  }).done(function (response, textStatus, xhr) {
+	  }).done(function pageviewPostSuccessCallback(response, textStatus, xhr) {
 	    // Reset counter if the day change, probably should be done on interval not during post
 	    var currentDate = new Date().getDate();
 	    if (parseInt(localStorage[PAGES_RECORDED_START_DAY], 10) !== currentDate) {
@@ -173,31 +199,43 @@
 	      localStorage[PAGES_RECORDED_TODAY] = (parseInt(localStorage[PAGES_RECORDED_TODAY], 10) + 1).toString();
 	      setTimeout(setDefaultIcon, 1000);
 	      setCurrentPageCount();
+	      setAndExpireUrlStore(url, multiplier);
 	    } else if (xhr.status === 200) {
 	      if (response && response.created_in_recent_hours) {
 	        localStorage[PAGES_RECORDED_TODAY] = (parseInt(localStorage[PAGES_RECORDED_TODAY], 10) - 1).toString();
 	      }
 	      chrome.browserAction.setBadgeText({ 'text': 'Sent' });
 	      setTimeout(setCurrentPageCount, 1500);
+	      setAndExpireUrlStore(url, multiplier);
 	    }
+
 	    if (successCallback) {
 	      successCallback();
 	    }
-	  }).fail(function (jqXHR, textStatus, errorThrown) {
+	  }).fail(function pageviewPostFailureCallback(jqXHR, textStatus, errorThrown) {
 	    console.warn('Could not post page view');
 
 	    if (failureCallback) {
+	      setAndExpireUrlStore(null, null);
 	      failureCallback();
 	    }
 	  });
 	}
 
-	function setDefaultIcon() {
-	  chrome.browserAction.setIcon({ 'path': PATH_FOR_DEFAULT_ICON });
-	}
+	function setAndExpireUrlStore(url, weight) {
+	  var sus = null;
+	  if (url && (weight || weight === 0)) {
+	    sus = new _SubmittedUrlStore2['default']();
+	    sus.setSubmittedUrl(url, multiplier);
+	  }
 
-	function setCurrentPageCount() {
-	  chrome.browserAction.setBadgeText({ 'text': localStorage[PAGES_RECORDED_TODAY] });
+	  if (!localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE] || new Date(localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE]) + MINS_BETWEEN_SUBMITTED_EXPIRATION_CALLS * 60 * 1000 < new Date()) {
+	    if (!sus) {
+	      sus = new _SubmittedUrlStore2['default']();
+	    }
+	    sus.expireSubmittedUrls();
+	    localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE] = new Date();
+	  }
 	}
 
 	function setWeight(url, multiplier, successCallback, failureCallback) {
@@ -207,16 +245,6 @@
 	    return false;
 	  }
 	  postPageview(url, multiplier, successCallback, failureCallback, userInitiated);
-	}
-
-	function loggedIn() {
-	  var uuid = localStorage.id;
-	  return uuid;
-	}
-
-	function getHoursElapsedToday() {
-	  var d = new Date();
-	  return d.getHours() + d.getMinutes() / 60;
 	}
 
 	function login(email, password, callback) {
@@ -232,7 +260,7 @@
 	    'data': data,
 	    'contentType': 'application/json',
 	    'dataType': 'json'
-	  }).done(function (responseData) {
+	  }).done(function loginSuccessCallback(responseData) {
 	    localStorage[PAGES_RECORDED_TODAY] = responseData.num_urls_recorded_in_last_hours;
 	    localStorage[PAGES_RECORDED_START_DAY] = new Date().getDate().toString();
 	    setCurrentPageCount();
@@ -241,16 +269,10 @@
 	    initFirstLoginDefaults();
 
 	    callback(responseData.uuid);
-	  }).fail(function () {
+	  }).fail(function loginFailureCallback() {
 	    // last_updated_id = null;
 	    callback('');
 	  });
-	}
-
-	function initFirstLoginDefaults() {
-	  if (localStorage[ENABLE_TRACKING] === undefined) {
-	    localStorage[ENABLE_TRACKING] = 'true';
-	  }
 	}
 
 	function toggleTracking() {
@@ -275,7 +297,7 @@
 	      new _ProviderStore2['default']().removeProvider(request.provider_slug);
 	      break;
 	    case LOGIN_MESSAGE:
-	      login(request.email, request.password, function (uuid) {
+	      login(request.email, request.password, function loginCallback(uuid) {
 	        if (uuid && uuid !== '') {
 	          localStorage.id = uuid;
 	        }
@@ -299,11 +321,11 @@
 	      var url = sender.tab.url;
 	      console.log(url);
 	      checkAttemptRestart();
-	      var top_urls = new _TopUrlStore2['default']();
-	      if (localStorage[ENABLE_TRACKING] !== 'false' && top_urls.urlInTop(url)) {
-	        setWeight(url, WEIGHTS[DEFAULT_WEIGHT_KEY], function (response) {
+	      var topUrls = new _TopUrlStore2['default']();
+	      if (localStorage[ENABLE_TRACKING] !== 'false' && topUrls.urlInTop(url)) {
+	        setWeight(url, WEIGHTS[DEFAULT_WEIGHT_KEY], function pageLoadedSuccessCallback(response) {
 	          sendResponse({ 'success': 'true' });
-	        }, function (response) {
+	        }, function pageLoadedFailureCallback(response) {
 	          sendResponse({ 'success': 'false' });
 	        });
 	        console.log('Sent to server');
@@ -318,9 +340,9 @@
 	    default:
 	      if (WEIGHTS.hasOwnProperty(request.message)) {
 	        var _url = request.url;
-	        setWeight(_url, WEIGHTS[request.message], function (response) {
+	        setWeight(_url, WEIGHTS[request.message], function pageLoadedSuccessCallback(response) {
 	          sendResponse({ 'success': 'true' });
-	        }, function (response) {
+	        }, function pageLoadedFailureCallback(response) {
 	          sendResponse({ 'success': 'false' });
 	        }, true);
 	        return true;
@@ -333,145 +355,6 @@
 
 /***/ },
 /* 1 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	Object.defineProperty(exports, '__esModule', {
-	  value: true
-	});
-
-	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-
-	var _default = (function () {
-	  var _class = function _default(url) {
-	    _classCallCheck(this, _class);
-
-	    if (url) {
-	      this.url = url.toLowerCase();
-	      this.parsedUrl = null;
-	      if (this.url) {
-	        this.parsedUrl = parseUri(this.url);
-	      }
-	    }
-	  };
-
-	  _createClass(_class, [{
-	    key: 'getAllUrlRepresentations',
-
-	    // Public
-	    value: function getAllUrlRepresentations() {
-	      var p = this.parsedUrl;
-
-	      if (!this.url || this.url === '' || !this.parsedUrl) {
-	        return null;
-	      }
-
-	      var urlRepresentations = [this.url];
-	      var altProtocolUrl = this.alternateProtocolUrl(this.url);
-	      if (altProtocolUrl) {
-	        urlRepresentations.push(altProtocolUrl);
-	      }
-
-	      var withoutQuery = this.withoutQueryParameters();
-	      if (withoutQuery) {
-	        urlRepresentations = urlRepresentations.concat(withoutQuery);
-	      }
-
-	      return urlRepresentations;
-	    }
-	  }, {
-	    key: 'withoutQueryParameters',
-
-	    // Private
-	    value: function withoutQueryParameters() {
-	      var p = this.parsedUrl;
-	      var results = [];
-
-	      if (p.query) {
-	        var withoutQueryParams = undefined;
-	        withoutQueryParams = p.protocol + '://' + p.host;
-	        if (p.port) {
-	          withoutQueryParams += ':' + p.port;
-	        }
-	        withoutQueryParams += p.path;
-	        if (p.anchor) {
-	          withoutQueryParams += '#' + p.anchor;
-	        }
-	        results.push(withoutQueryParams); // without query parameters
-
-	        var altProtocolUrl = this.alternateProtocolUrl(withoutQueryParams);
-	        if (altProtocolUrl) {
-	          results.push(altProtocolUrl);
-	        }
-
-	        return results;
-	      }
-
-	      return null;
-	    }
-	  }, {
-	    key: 'alternateProtocolUrl',
-
-	    // Add HTTP representation for HTTPS, and vice versa
-	    value: function alternateProtocolUrl(url) {
-	      var p = parseUri(url);
-
-	      if (!p) {
-	        return null;
-	      }
-
-	      if (p.protocol === 'https') {
-	        return url.replace('https', 'http');
-	      } else if (p.protocol === 'http') {
-	        return url.replace('http', 'https');
-	      }
-	      return null;
-	    }
-	  }]);
-
-	  return _class;
-	})();
-
-	exports['default'] = _default;
-
-	// parseUri 1.2.2
-	// (c) Steven Levithan <stevenlevithan.com>
-	// MIT License
-	function parseUri(str) {
-	  var o = parseUri.options,
-	      m = o.parser[o.strictMode ? 'strict' : 'loose'].exec(str),
-	      uri = {},
-	      i = 14;
-
-	  while (i--) uri[o.key[i]] = m[i] || '';
-
-	  uri[o.q.name] = {};
-	  uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
-	    if ($1) uri[o.q.name][$1] = $2;
-	  });
-
-	  return uri;
-	};
-
-	parseUri.options = {
-	  strictMode: false,
-	  key: ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'],
-	  q: {
-	    name: 'queryKey',
-	    parser: /(?:^|&)([^&=]*)=?([^&]*)/g
-	  },
-	  parser: {
-	    strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-	    loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
-	  }
-	};
-	module.exports = exports['default'];
-
-/***/ },
-/* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -486,7 +369,7 @@
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var _TopUrlStore = __webpack_require__(3);
+	var _TopUrlStore = __webpack_require__(2);
 
 	var _TopUrlStore2 = _interopRequireDefault(_TopUrlStore);
 
@@ -533,8 +416,9 @@
 
 	    // Run all updates
 	    value: function updateAllTopUrlsForProviders() {
-	      var providerList = arguments[0] === undefined ? null : arguments[0];
+	      var providerListInit = arguments[0] === undefined ? null : arguments[0];
 
+	      var providerList = providerListInit;
 	      if (!providerList) {
 	        this.instantiateProvidersList();
 	        providerList = this.providersList;
@@ -627,7 +511,7 @@
 	exports['default'] = _default;
 
 /***/ },
-/* 3 */
+/* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -642,11 +526,11 @@
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var _UrlVariation = __webpack_require__(1);
+	var _UrlVariation = __webpack_require__(3);
 
 	var _UrlVariation2 = _interopRequireDefault(_UrlVariation);
 
-	var _ProviderStore = __webpack_require__(2);
+	var _ProviderStore = __webpack_require__(1);
 
 	var _ProviderStore2 = _interopRequireDefault(_ProviderStore);
 
@@ -767,25 +651,152 @@
 	})();
 
 	exports['default'] = _default;
+	module.exports = exports['default'];
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
 
 	// parseUri 1.2.2
 	// (c) Steven Levithan <stevenlevithan.com>
 	// MIT License
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
 	function parseUri(str) {
-	  var o = parseUri.options,
-	      m = o.parser[o.strictMode ? 'strict' : 'loose'].exec(str),
-	      uri = {},
-	      i = 14;
+	  var o = parseUri.options;
+	  var m = o.parser[o.strictMode ? 'strict' : 'loose'].exec(str);
+	  var uri = {};
+	  var i = 14;
 
 	  while (i--) uri[o.key[i]] = m[i] || '';
 
 	  uri[o.q.name] = {};
-	  uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+	  uri[o.key[12]].replace(o.q.parser, function doUriReplace($0, $1, $2) {
 	    if ($1) uri[o.q.name][$1] = $2;
 	  });
 
 	  return uri;
+	}
+
+	parseUri.options = {
+	  'strictMode': false,
+	  'key': ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'],
+	  'q': {
+	    'name': 'queryKey',
+	    'parser': /(?:^|&)([^&=]*)=?([^&]*)/g
+	  },
+	  'parser': {
+	    'strict': /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+	    'loose': /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+	  }
 	};
+
+	var _default = (function () {
+	  var _class = function _default(url) {
+	    _classCallCheck(this, _class);
+
+	    if (url) {
+	      this.url = url.toLowerCase();
+	      this.parsedUrl = null;
+	      if (this.url) {
+	        this.parsedUrl = parseUri(this.url);
+	      }
+	    }
+	  };
+
+	  _createClass(_class, [{
+	    key: 'getAllUrlRepresentations',
+
+	    // Public
+	    value: function getAllUrlRepresentations() {
+	      // let p = this.parsedUrl;
+
+	      if (!this.url || this.url === '' || !this.parsedUrl) {
+	        return null;
+	      }
+
+	      var urlRepresentations = [this.url];
+	      var altProtocolUrl = this.alternateProtocolUrl(this.url);
+	      if (altProtocolUrl) {
+	        urlRepresentations.push(altProtocolUrl);
+	      }
+
+	      var withoutQuery = this.withoutQueryParameters();
+	      if (withoutQuery) {
+	        urlRepresentations = urlRepresentations.concat(withoutQuery);
+	      }
+
+	      return urlRepresentations;
+	    }
+	  }, {
+	    key: 'withoutQueryParameters',
+
+	    // Private
+	    value: function withoutQueryParameters() {
+	      var p = this.parsedUrl;
+	      var results = [];
+
+	      if (p.query) {
+	        var withoutQueryParams = undefined;
+	        withoutQueryParams = p.protocol + '://' + p.host;
+	        if (p.port) {
+	          withoutQueryParams += ':' + p.port;
+	        }
+	        withoutQueryParams += p.path;
+	        if (p.anchor) {
+	          withoutQueryParams += '#' + p.anchor;
+	        }
+	        results.push(withoutQueryParams); // without query parameters
+
+	        var altProtocolUrl = this.alternateProtocolUrl(withoutQueryParams);
+	        if (altProtocolUrl) {
+	          results.push(altProtocolUrl);
+	        }
+
+	        return results;
+	      }
+
+	      return null;
+	    }
+	  }, {
+	    key: 'alternateProtocolUrl',
+
+	    // Add HTTP representation for HTTPS, and vice versa
+	    value: function alternateProtocolUrl(url) {
+	      var p = parseUri(url);
+
+	      if (!p) {
+	        return null;
+	      }
+
+	      if (p.protocol === 'https') {
+	        return url.replace('https', 'http');
+	      } else if (p.protocol === 'http') {
+	        return url.replace('http', 'https');
+	      }
+	      return null;
+	    }
+	  }], [{
+	    key: 'stripUrl',
+
+	    // Strip means remove query parameters and anchor from the URL
+	    value: function stripUrl(url) {
+	      return url.split(/[?#]/)[0];
+	    }
+	  }]);
+
+	  return _class;
+	})();
+
+	exports['default'] = _default;
 	module.exports = exports['default'];
 
 /***/ },
@@ -808,7 +819,6 @@
 	var HN_MAX_NUM_PAGES = 5;
 
 	var HN_PROVIDER_SLUG = 'hackernews';
-	var HN_DICT_URLS_KEY = HN_PROVIDER_SLUG + '_' + 'urls';
 	var HN_DICT_URLS_TEMP_KEY = HN_PROVIDER_SLUG + '_' + 'newUrls';
 
 	// Reddit
@@ -828,7 +838,7 @@
 	    // Get Top 150 URLs on HN every 10 minutes
 	    value: function extractHNUrls(data, i, successCallback) {
 	      var html = $.parseHTML(data);
-	      var urlArr = $('.athing .title a', $(html)).map(function () {
+	      var urlArr = $('.athing .title a', $(html)).map(function findHNUrl() {
 	        var currUrl = this.href;
 
 	        if (currUrl) {
@@ -867,11 +877,11 @@
 	            'type': 'GET',
 	            'url': HN_PROVIDER_BASE_URL + HN_PROVIDER_PAGE_RELATIVE_URL + (i + 1).toString(),
 	            'dataType': 'html'
-	          }).done(function (response) {
+	          }).done(function downloadHnPageSuccess(response) {
 	            that.extractHNUrls(response, i, successCallback);
 	            i += 1;
 	            downloadPage();
-	          }).fail(function handleError(jqXHR, textStatus, errorThrown) {
+	          }).fail(function downloadHnPageError(jqXHR, textStatus, errorThrown) {
 	            console.warn('Could not download HN');
 	            failureCallback();
 	            // console.log(jqXHR);
@@ -894,25 +904,150 @@
 	        'dataType': 'json',
 	        'contentType': 'application/json',
 	        'data': ''
-	      }).done(function (data, textStatus, xhr) {
+	      }).done(function downloadSubredditSuccess(data, textStatus, xhr) {
 	        if (xhr.status === 200 && data && data.data && data.data.children) {
 	          console.info('Done downloading subreddit: ' + subreddit);
-	          successCallback(that.parseUrlsFromSubredditData(data.data.children, subreddit));
+	          successCallback(that.parseUrlsFromSubredditData(data.data.children));
 	        } else {
 	          console.warn('Reddit: No data or bad data received for subreddit: ' + subreddit);
 	          failureCallback();
 	        }
-	      }).fail(function (jqXHR, textStatus, errorThrown) {
+	      }).fail(function downloadSubredditFailure(jqXHR, textStatus, errorThrown) {
 	        console.warn('Could not load subreddit: ' + subreddit);
 	        failureCallback();
 	      });
 	    }
 	  }, {
 	    key: 'parseUrlsFromSubredditData',
-	    value: function parseUrlsFromSubredditData(data, subreddit) {
-	      return data.map(function (o) {
+	    value: function parseUrlsFromSubredditData(data) {
+	      return data.map(function getRedditPostUrl(o) {
 	        return o.data.url;
 	      });
+	    }
+	  }]);
+
+	  return _class;
+	})();
+
+	exports['default'] = _default;
+	module.exports = exports['default'];
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+	var _UrlVariation = __webpack_require__(3);
+
+	var _UrlVariation2 = _interopRequireDefault(_UrlVariation);
+
+	var SUBMITTED_URLS_STORAGE_KEY = 'submitted_urls';
+	var EXPIRY_TIME_MINUTES = 60 * 24 * 7;
+
+	var _default = (function () {
+	  var _class = function _default() {
+	    _classCallCheck(this, _class);
+
+	    this.data = this.loadSubmittedUrls();
+	  };
+
+	  _createClass(_class, [{
+	    key: 'setSubmittedUrl',
+
+	    // Date is stored in Unix time
+	    value: function setSubmittedUrl(url, weight) {
+	      // strip lookup URL - no query parameters, no id
+	      var lookupUrl = _UrlVariation2['default'].stripUrl(url);
+	      var urlSearch = this.getDetailsOfUrl(url);
+	      var newDate = undefined;
+	      var urlKey = undefined;
+
+	      if (urlSearch) {
+	        newDate = urlSearch.date;
+	        urlKey = urlSearch.url;
+	        console.log('SubmittedUrls: Updating old entry ' + urlKey);
+	      } else {
+	        newDate = new Date();
+	        urlKey = lookupUrl;
+	        console.log('SubmittedUrls: Storing new entry ' + urlKey);
+	      }
+
+	      this.data[urlKey] = {
+	        'weight': weight,
+	        'date': newDate
+	      };
+
+	      this.storeSubmittedUrls();
+	    }
+	  }, {
+	    key: 'getDetailsOfUrl',
+	    value: function getDetailsOfUrl(url) {
+	      var urlRepresentations = this.getUrlVariations(url);
+
+	      for (var i = 0; i < urlRepresentations.length; i++) {
+	        if (this.data[urlRepresentations[i]]) {
+	          var elem = this.data[urlRepresentations[i]];
+	          return {
+	            'url': urlRepresentations[i],
+	            'weight': elem.weight,
+	            'date': elem.date
+	          };
+	        }
+	      }
+	      return null;
+	    }
+	  }, {
+	    key: 'expireSubmittedUrls',
+	    value: function expireSubmittedUrls() {
+	      var currDate = new Date();
+	      var parsedDate = undefined;
+
+	      for (keyName in this.data) {
+	        if (this.data.hasOwnProperty(keyName)) {
+	          parsedDate = Date.parse(this.data[keyName].date);
+	          if (parsedDate < currDate + EXPIRY_TIME_MINUTES * 60 * 1000) {
+	            delete this.data[keyName];
+	          }
+	        }
+	      }
+	    }
+	  }, {
+	    key: 'storeSubmittedUrls',
+
+	    // Private
+	    value: function storeSubmittedUrls() {
+	      localStorage[SUBMITTED_URLS_STORAGE_KEY] = JSON.stringify(this.data);
+	    }
+	  }, {
+	    key: 'loadSubmittedUrls',
+	    value: function loadSubmittedUrls() {
+	      if (localStorage[SUBMITTED_URLS_STORAGE_KEY] === undefined) {
+	        return {};
+	      } else {
+	        return JSON.parse(localStorage[SUBMITTED_URLS_STORAGE_KEY]);
+	      }
+	    }
+	  }, {
+	    key: 'getUrlVariations',
+	    value: function getUrlVariations(url) {
+	      var ur = new _UrlVariation2['default'](url.toLowerCase());
+	      var urlRepresentations = ur.getAllUrlRepresentations();
+
+	      if (!urlRepresentations || urlRepresentations.length === 0) {
+	        return null;
+	      }
+	      return urlRepresentations;
 	    }
 	  }]);
 

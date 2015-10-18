@@ -14,7 +14,6 @@ var HN_PROVIDER_PAGE_RELATIVE_URL = 'news?p=';
 var HN_MAX_NUM_PAGES = 5;
 
 var HN_PROVIDER_SLUG = 'hackernews';
-var HN_DICT_URLS_KEY = HN_PROVIDER_SLUG + '_' + 'urls';
 var HN_DICT_URLS_TEMP_KEY = HN_PROVIDER_SLUG + '_' + 'newUrls';
 
 // Reddit
@@ -34,7 +33,7 @@ var _default = (function () {
     // Get Top 150 URLs on HN every 10 minutes
     value: function extractHNUrls(data, i, successCallback) {
       var html = $.parseHTML(data);
-      var urlArr = $('.athing .title a', $(html)).map(function () {
+      var urlArr = $('.athing .title a', $(html)).map(function findHNUrl() {
         var currUrl = this.href;
 
         if (currUrl) {
@@ -73,11 +72,11 @@ var _default = (function () {
             'type': 'GET',
             'url': HN_PROVIDER_BASE_URL + HN_PROVIDER_PAGE_RELATIVE_URL + (i + 1).toString(),
             'dataType': 'html'
-          }).done(function (response) {
+          }).done(function downloadHnPageSuccess(response) {
             that.extractHNUrls(response, i, successCallback);
             i += 1;
             downloadPage();
-          }).fail(function handleError(jqXHR, textStatus, errorThrown) {
+          }).fail(function downloadHnPageError(jqXHR, textStatus, errorThrown) {
             console.warn('Could not download HN');
             failureCallback();
             // console.log(jqXHR);
@@ -100,23 +99,23 @@ var _default = (function () {
         'dataType': 'json',
         'contentType': 'application/json',
         'data': ''
-      }).done(function (data, textStatus, xhr) {
+      }).done(function downloadSubredditSuccess(data, textStatus, xhr) {
         if (xhr.status === 200 && data && data.data && data.data.children) {
           console.info('Done downloading subreddit: ' + subreddit);
-          successCallback(that.parseUrlsFromSubredditData(data.data.children, subreddit));
+          successCallback(that.parseUrlsFromSubredditData(data.data.children));
         } else {
           console.warn('Reddit: No data or bad data received for subreddit: ' + subreddit);
           failureCallback();
         }
-      }).fail(function (jqXHR, textStatus, errorThrown) {
+      }).fail(function downloadSubredditFailure(jqXHR, textStatus, errorThrown) {
         console.warn('Could not load subreddit: ' + subreddit);
         failureCallback();
       });
     }
   }, {
     key: 'parseUrlsFromSubredditData',
-    value: function parseUrlsFromSubredditData(data, subreddit) {
-      return data.map(function (o) {
+    value: function parseUrlsFromSubredditData(data) {
+      return data.map(function getRedditPostUrl(o) {
         return o.data.url;
       });
     }

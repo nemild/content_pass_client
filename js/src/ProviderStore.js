@@ -57,8 +57,9 @@ var _default = (function () {
 
     // Run all updates
     value: function updateAllTopUrlsForProviders() {
-      var providerList = arguments[0] === undefined ? null : arguments[0];
+      var providerListInit = arguments[0] === undefined ? null : arguments[0];
 
+      var providerList = providerListInit;
       if (!providerList) {
         this.instantiateProvidersList();
         providerList = this.providersList;

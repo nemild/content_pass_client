@@ -1,3 +1,35 @@
+// parseUri 1.2.2
+// (c) Steven Levithan <stevenlevithan.com>
+// MIT License
+function parseUri(str) {
+  let o = parseUri.options;
+  let m   = o.parser[o.strictMode ? 'strict' : 'loose'].exec(str);
+  let uri = {};
+  let i   = 14;
+
+  while (i--) uri[o.key[i]] = m[i] || '';
+
+  uri[o.q.name] = {};
+  uri[o.key[12]].replace(o.q.parser, function doUriReplace($0, $1, $2) {
+    if ($1) uri[o.q.name][$1] = $2;
+  });
+
+  return uri;
+}
+
+parseUri.options = {
+  'strictMode': false,
+  'key': ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'],
+  'q': {
+    'name': 'queryKey',
+    'parser': /(?:^|&)([^&=]*)=?([^&]*)/g
+  },
+  'parser': {
+    'strict': /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+    'loose': /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+  }
+};
+
 export default class {
   constructor(url) {
     if (url) {
@@ -11,7 +43,7 @@ export default class {
 
   // Public
   getAllUrlRepresentations() {
-    let p = this.parsedUrl;
+    // let p = this.parsedUrl;
 
     if (!this.url || this.url === '' || !this.parsedUrl) {
       return null;
@@ -59,8 +91,13 @@ export default class {
     return null;
   }
 
+  // Strip means remove query parameters and anchor from the URL
+  static stripUrl(url) {
+    return url.split(/[?#]/)[0];
+  }
+
   // Add HTTP representation for HTTPS, and vice versa
-  alternateProtocolUrl (url) {
+  alternateProtocolUrl(url) {
     let p = parseUri(url);
 
     if (!p) {
@@ -76,34 +113,4 @@ export default class {
   }
 }
 
-// parseUri 1.2.2
-// (c) Steven Levithan <stevenlevithan.com>
-// MIT License
-function parseUri (str) {
-  var	o = parseUri.options,
-    m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
-    uri = {},
-    i   = 14;
 
-  while (i--) uri[o.key[i]] = m[i] || "";
-
-  uri[o.q.name] = {};
-  uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
-    if ($1) uri[o.q.name][$1] = $2;
-  });
-
-  return uri;
-};
-
-parseUri.options = {
-  strictMode: false,
-  key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
-  q:   {
-    name:   "queryKey",
-    parser: /(?:^|&)([^&=]*)=?([^&]*)/g
-  },
-  parser: {
-    strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-    loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
-  }
-};

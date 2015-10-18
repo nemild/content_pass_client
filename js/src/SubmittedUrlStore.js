@@ -30,16 +30,19 @@ var _default = (function () {
     // Date is stored in Unix time
     value: function setSubmittedUrl(url, weight) {
       // strip lookup URL - no query parameters, no id
-      var lookupUrl = this.getDetailsOfUrl(url);
+      var lookupUrl = _UrlVariation2['default'].stripUrl(url);
+      var urlSearch = this.getDetailsOfUrl(url);
       var newDate = undefined;
       var urlKey = undefined;
 
-      if (lookupUrl.weight === null) {
-        newDate = new Date();
-        urlKey = lookupUrl.url;
+      if (urlSearch) {
+        newDate = urlSearch.date;
+        urlKey = urlSearch.url;
+        console.log('SubmittedUrls: Updating old entry ' + urlKey);
       } else {
-        newDate = lookupUrl.date;
-        urlKey = url;
+        newDate = new Date();
+        urlKey = lookupUrl;
+        console.log('SubmittedUrls: Storing new entry ' + urlKey);
       }
 
       this.data[urlKey] = {
@@ -64,16 +67,7 @@ var _default = (function () {
           };
         }
       }
-      return {
-        'url': null,
-        'weight': null,
-        'date': null
-      };
-    }
-  }, {
-    key: 'storeSubmittedUrls',
-    value: function storeSubmittedUrls() {
-      localStorage[SUBMITTED_URLS_STORAGE_KEY] = JSON.stringify(this.data);
+      return null;
     }
   }, {
     key: 'expireSubmittedUrls',
@@ -91,9 +85,14 @@ var _default = (function () {
       }
     }
   }, {
-    key: 'loadSubmittedUrls',
+    key: 'storeSubmittedUrls',
 
     // Private
+    value: function storeSubmittedUrls() {
+      localStorage[SUBMITTED_URLS_STORAGE_KEY] = JSON.stringify(this.data);
+    }
+  }, {
+    key: 'loadSubmittedUrls',
     value: function loadSubmittedUrls() {
       if (localStorage[SUBMITTED_URLS_STORAGE_KEY] === undefined) {
         return {};

@@ -10,9 +10,9 @@
     <div class='logo logo-heading'><a href='https://content-pass.herokuapp.com'>ContentPass</a></div>
     <section id='logged_in_frame'>
       <ul class="content-pass-actions-frame" id="multiplier_selector">
-        <li class="content-pass-single-action">0X</li>
-        <li class="content-pass-single-action">1X</li>
-        <li class="content-pass-single-action">5X</li>
+        <li class="content-pass-single-action" data-weight='0'>0X</li>
+        <li class="content-pass-single-action" data-weight='1'>1X</li>
+        <li class="content-pass-single-action" data-weight='5'>5X</li>
       </ul>
       <div id='updated_indicator_frame'>
         <div id='updated_indicator'></div>
@@ -22,9 +22,9 @@
         <div class='header'>HN Top Posts Last Updated</div>
         <div id='last_updated_data'></div>
       </div>
-      <div class='center'><div class='btn btn-success' id='auto_tracking'>Tracking<br />On</div></div>
+      <div class='center'><div class='btn btn-success' id='auto_tracking'>Auto Submission<br />On</div></div>
       <br />
-      <div id='show-providers'>Providers</div>
+      <div id='show-providers'>Auto Submission Preferences</div>
     </section>
 
     <section class="loginform cf">
@@ -42,7 +42,6 @@
         <img class='loading' id='login_loading' src='../images/loading.gif' alt='Loading' />
       </div>
     </section>
-
     <div id='tutorial-frame'>
       <div id='part1' class='part'>
         <div class='logo logo-heading'>ContentPass</div>
@@ -54,7 +53,6 @@
         <div class='tutorial-body'> The daily counter (the icon badge) will go up when a site's been recorded, and resets each day. <br /><br />Don't worry about page reloads. We'll only allow a site to be recorded once a week.</div>
         <div class='btn btn-primary tutorial-next-button' data-next-target='part3' data-current-target='part2'>Next</div>
       </div>
-
       <div id='part3' class='part'>
         <div class='logo logo-heading'>ContentPass</div>
         <div class='tutorial-body'>We provide 0X and 5X buttons, if you want to 5X the weight (for great content) or skip a site, instead of the standard 1X weighting. You can 0X a site that's been recorded for up to a week after you visit, and it'll be removed from our records.</div>
@@ -65,21 +63,15 @@
         <div class='tutorial-body'>Privacy really matters to us. If you don't want to automatically report your HN reading at anytime, press the disable button, logout, or go into incognito mode. In the disabled mode, you can still use the 1X and 5X buttons to manually record a site.</div>
         <div class='btn btn-primary tutorial-next-button' data-next-target='part5' data-current-target='part4'>Next</div>
       </div>
-
-
-
       <div id='part5' class='part'>
         <div class='logo logo-heading'>ContentPass</div>
         <div class='tutorial-body'>That's it. Ready to get started?</div>
         <div class='btn btn-primary tutorial-next-button' data-next-target='' data-current-target='part5'>Start</div>
       </div>
     </div>
-
     <div id='provider-section'>
       <div>
-        We restrict the sites that are automatically sent to our server based on the communities you value. For now, we support the current top 100 or so posts on Hacker News and any subreddit:</div>
-
-
+        We restrict the sites that are automatically sent to our server based on the communities you value. For now, we support the current top 100 or so posts on <a href='https://news.ycombinator.com'>Hacker News</a> and any subreddit:</div>
       <table class='table provider-table'>
         <tr>
           <th>Site</th>
@@ -87,9 +79,8 @@
           <th></th>
         </tr>
       </table>
-
       <div>
-        <input id='add-provider-text' type='text' placeholder='Provider' class='form-control' style='font-size:24px; padding:7px;' required>
+        <input id='add-provider-text' type='text' placeholder='Provider' class='form-control' style='font-size:14px; padding:7px;' required>
         <div class='add btn btn-primary btn-sm'>Add</div>
       </div>
       <br />

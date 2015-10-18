@@ -52,6 +52,10 @@
 
 	var _ProviderStore2 = _interopRequireDefault(_ProviderStore);
 
+	var _SubmittedUrlStore = __webpack_require__(5);
+
+	var _SubmittedUrlStore2 = _interopRequireDefault(_SubmittedUrlStore);
+
 	var dropDown = undefined;
 	var loginForm = undefined;
 	var providerSection = undefined;
@@ -67,13 +71,10 @@
 	var runtime = undefined;
 
 	function cleanDate(date) {
-	  bgPage.console.log(date);
-	  // bgPage.console.log('here');
 	  if (date) {
-	    var _cleanDate = new Date(date);
-	    return _cleanDate.toLocaleDateString() + ' ' + _cleanDate.toLocaleTimeString();
+	    var parsedDate = new Date(date);
+	    return parsedDate.toLocaleDateString() + ' ' + parsedDate.toLocaleTimeString();
 	  }
-
 	  return '';
 	}
 
@@ -91,7 +92,7 @@
 	  $('#updated_indicator_frame').show();
 	  $('footer.links').show();
 
-	  $('#logged_in_frame #show-providers').on('click', function () {
+	  $('#logged_in_frame #show-providers').on('click', function handleShowProviders() {
 	    configureListProvidersPage();
 	  });
 	}
@@ -114,7 +115,7 @@
 	  $('#last_updated_frame').hide();
 	  $('#logged_in_frame').hide();
 	  $('#updated_indicator_frame').hide();
-	  $('#provider-section #provider-edit-done').on('click', function () {
+	  $('#provider-section #provider-edit-done').on('click', function handleProviderViewDone() {
 	    providerSection.style.display = 'none';
 	    configureLoggedInState();
 	    $('#provider-section .a-provider').remove();
@@ -130,21 +131,27 @@
 	    }
 	  }
 
-	  $('#provider-section .remove').on('click', function (e) {
+	  $('#provider-section .remove').on('click', function handleRemoveProviderAction(e) {
 	    // bgPage.console.log('Remove slug' + $(this).parents('tr'));
 	    runtime.sendMessage({
 	      'message': REMOVE_PROVIDER_MESSAGE,
 	      'provider_slug': $(this).data('slug')
-	    }, function (response) {});
-	    $(this).parents('tr').fadeOut(500, function () {
+	    }, function callback(response) {});
+	    $(this).parents('tr').fadeOut(500, function removeProviderDisplay() {
 	      $(this).remove();
 	    });
 	  });
 	}
 
-	function determineCurrentTabHistory() {
-	  chrome.tabs.getCurrent(function (tab) {
-	    console.log(tab.url);
+	function determineCurrentTabUrl() {
+	  chrome.tabs.getSelected(null, function (tab) {
+	    if (tab && tab.url) {
+	      var submittedStore = new _SubmittedUrlStore2['default']();
+	      var search = submittedStore.getDetailsOfUrl(tab.url);
+	      if (search) {
+	        $('.content-pass-single-action[data-weight="' + search.weight.toString() + '"]').addClass('selected');
+	      }
+	    }
 	  });
 	}
 
@@ -159,10 +166,10 @@
 	function setTrackingIndicator(set_on) {
 	  var $auto_tracking = $('#auto_tracking');
 	  if (set_on === true || set_on === undefined) {
-	    $auto_tracking.html('Tracking<br />On');
+	    $auto_tracking.html('Auto Submission<br />On');
 	    $auto_tracking.removeClass('btn-danger').addClass('btn-success');
 	  } else if (set_on === false) {
-	    $auto_tracking.html('Tracking<br />Off');
+	    $auto_tracking.html('Auto Submission<br />Off');
 	    $auto_tracking.addClass('btn-danger').removeClass('btn-success');
 	  }
 	}
@@ -200,9 +207,10 @@
 	  $('#updated_indicator_error').fadeOut(500);
 	}
 
-	document.addEventListener('DOMContentLoaded', function loadPage() {
+	document.addEventListener('DOMContentLoaded', function documentReady() {
 	  bgPage = chrome.extension.getBackgroundPage();
 	  runtime = chrome.runtime;
+	  determineCurrentTabUrl();
 
 	  dropDown = document.getElementById('multiplier_selector');
 	  loginForm = document.forms.login;
@@ -217,14 +225,17 @@
 	  }
 
 	  $('#provider-section .add').on('click', function (e) {
+	    var addString = $('#provider-section input[type="text"]').val();
+	    if (addString) {
+	      runtime.sendMessage({
+	        'message': ADD_PROVIDER_MESSAGE,
+	        'provider_slug': addString
+	      }, function (response) {
+	        configureListProvidersPage();
+	      });
+	      $('#provider-section input[type="text"]').val('');
+	    }
 	    e.preventDefault();
-	    $('#provider-section input[type="text"]').val('');
-	    runtime.sendMessage({
-	      'message': ADD_PROVIDER_MESSAGE,
-	      'provider_slug': $('#provider-section input[type="text"]').val()
-	    }, function (response) {
-	      configureListProvidersPage();
-	    });
 	  });
 
 	  $('#logout').on('click', function logout(e) {
@@ -356,8 +367,9 @@
 
 	    // Run all updates
 	    value: function updateAllTopUrlsForProviders() {
-	      var providerList = arguments[0] === undefined ? null : arguments[0];
+	      var providerListInit = arguments[0] === undefined ? null : arguments[0];
 
+	      var providerList = providerListInit;
 	      if (!providerList) {
 	        this.instantiateProvidersList();
 	        providerList = this.providersList;
@@ -590,31 +602,15 @@
 	})();
 
 	exports['default'] = _default;
-
-	// parseUri 1.2.2
-	// (c) Steven Levithan <stevenlevithan.com>
-	// MIT License
-	function parseUri(str) {
-	  var o = parseUri.options,
-	      m = o.parser[o.strictMode ? 'strict' : 'loose'].exec(str),
-	      uri = {},
-	      i = 14;
-
-	  while (i--) uri[o.key[i]] = m[i] || '';
-
-	  uri[o.q.name] = {};
-	  uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
-	    if ($1) uri[o.q.name][$1] = $2;
-	  });
-
-	  return uri;
-	};
 	module.exports = exports['default'];
 
 /***/ },
 /* 3 */
 /***/ function(module, exports) {
 
+	// parseUri 1.2.2
+	// (c) Steven Levithan <stevenlevithan.com>
+	// MIT License
 	'use strict';
 
 	Object.defineProperty(exports, '__esModule', {
@@ -624,6 +620,35 @@
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+	function parseUri(str) {
+	  var o = parseUri.options;
+	  var m = o.parser[o.strictMode ? 'strict' : 'loose'].exec(str);
+	  var uri = {};
+	  var i = 14;
+
+	  while (i--) uri[o.key[i]] = m[i] || '';
+
+	  uri[o.q.name] = {};
+	  uri[o.key[12]].replace(o.q.parser, function doUriReplace($0, $1, $2) {
+	    if ($1) uri[o.q.name][$1] = $2;
+	  });
+
+	  return uri;
+	}
+
+	parseUri.options = {
+	  'strictMode': false,
+	  'key': ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'],
+	  'q': {
+	    'name': 'queryKey',
+	    'parser': /(?:^|&)([^&=]*)=?([^&]*)/g
+	  },
+	  'parser': {
+	    'strict': /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+	    'loose': /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+	  }
+	};
 
 	var _default = (function () {
 	  var _class = function _default(url) {
@@ -643,7 +668,7 @@
 
 	    // Public
 	    value: function getAllUrlRepresentations() {
-	      var p = this.parsedUrl;
+	      // let p = this.parsedUrl;
 
 	      if (!this.url || this.url === '' || !this.parsedUrl) {
 	        return null;
@@ -710,44 +735,19 @@
 	      }
 	      return null;
 	    }
+	  }], [{
+	    key: 'stripUrl',
+
+	    // Strip means remove query parameters and anchor from the URL
+	    value: function stripUrl(url) {
+	      return url.split(/[?#]/)[0];
+	    }
 	  }]);
 
 	  return _class;
 	})();
 
 	exports['default'] = _default;
-
-	// parseUri 1.2.2
-	// (c) Steven Levithan <stevenlevithan.com>
-	// MIT License
-	function parseUri(str) {
-	  var o = parseUri.options,
-	      m = o.parser[o.strictMode ? 'strict' : 'loose'].exec(str),
-	      uri = {},
-	      i = 14;
-
-	  while (i--) uri[o.key[i]] = m[i] || '';
-
-	  uri[o.q.name] = {};
-	  uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
-	    if ($1) uri[o.q.name][$1] = $2;
-	  });
-
-	  return uri;
-	};
-
-	parseUri.options = {
-	  strictMode: false,
-	  key: ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'],
-	  q: {
-	    name: 'queryKey',
-	    parser: /(?:^|&)([^&=]*)=?([^&]*)/g
-	  },
-	  parser: {
-	    strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-	    loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
-	  }
-	};
 	module.exports = exports['default'];
 
 /***/ },
@@ -770,7 +770,6 @@
 	var HN_MAX_NUM_PAGES = 5;
 
 	var HN_PROVIDER_SLUG = 'hackernews';
-	var HN_DICT_URLS_KEY = HN_PROVIDER_SLUG + '_' + 'urls';
 	var HN_DICT_URLS_TEMP_KEY = HN_PROVIDER_SLUG + '_' + 'newUrls';
 
 	// Reddit
@@ -790,7 +789,7 @@
 	    // Get Top 150 URLs on HN every 10 minutes
 	    value: function extractHNUrls(data, i, successCallback) {
 	      var html = $.parseHTML(data);
-	      var urlArr = $('.athing .title a', $(html)).map(function () {
+	      var urlArr = $('.athing .title a', $(html)).map(function findHNUrl() {
 	        var currUrl = this.href;
 
 	        if (currUrl) {
@@ -829,11 +828,11 @@
 	            'type': 'GET',
 	            'url': HN_PROVIDER_BASE_URL + HN_PROVIDER_PAGE_RELATIVE_URL + (i + 1).toString(),
 	            'dataType': 'html'
-	          }).done(function (response) {
+	          }).done(function downloadHnPageSuccess(response) {
 	            that.extractHNUrls(response, i, successCallback);
 	            i += 1;
 	            downloadPage();
-	          }).fail(function handleError(jqXHR, textStatus, errorThrown) {
+	          }).fail(function downloadHnPageError(jqXHR, textStatus, errorThrown) {
 	            console.warn('Could not download HN');
 	            failureCallback();
 	            // console.log(jqXHR);
@@ -856,25 +855,150 @@
 	        'dataType': 'json',
 	        'contentType': 'application/json',
 	        'data': ''
-	      }).done(function (data, textStatus, xhr) {
+	      }).done(function downloadSubredditSuccess(data, textStatus, xhr) {
 	        if (xhr.status === 200 && data && data.data && data.data.children) {
 	          console.info('Done downloading subreddit: ' + subreddit);
-	          successCallback(that.parseUrlsFromSubredditData(data.data.children, subreddit));
+	          successCallback(that.parseUrlsFromSubredditData(data.data.children));
 	        } else {
 	          console.warn('Reddit: No data or bad data received for subreddit: ' + subreddit);
 	          failureCallback();
 	        }
-	      }).fail(function (jqXHR, textStatus, errorThrown) {
+	      }).fail(function downloadSubredditFailure(jqXHR, textStatus, errorThrown) {
 	        console.warn('Could not load subreddit: ' + subreddit);
 	        failureCallback();
 	      });
 	    }
 	  }, {
 	    key: 'parseUrlsFromSubredditData',
-	    value: function parseUrlsFromSubredditData(data, subreddit) {
-	      return data.map(function (o) {
+	    value: function parseUrlsFromSubredditData(data) {
+	      return data.map(function getRedditPostUrl(o) {
 	        return o.data.url;
 	      });
+	    }
+	  }]);
+
+	  return _class;
+	})();
+
+	exports['default'] = _default;
+	module.exports = exports['default'];
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+	var _UrlVariation = __webpack_require__(3);
+
+	var _UrlVariation2 = _interopRequireDefault(_UrlVariation);
+
+	var SUBMITTED_URLS_STORAGE_KEY = 'submitted_urls';
+	var EXPIRY_TIME_MINUTES = 60 * 24 * 7;
+
+	var _default = (function () {
+	  var _class = function _default() {
+	    _classCallCheck(this, _class);
+
+	    this.data = this.loadSubmittedUrls();
+	  };
+
+	  _createClass(_class, [{
+	    key: 'setSubmittedUrl',
+
+	    // Date is stored in Unix time
+	    value: function setSubmittedUrl(url, weight) {
+	      // strip lookup URL - no query parameters, no id
+	      var lookupUrl = _UrlVariation2['default'].stripUrl(url);
+	      var urlSearch = this.getDetailsOfUrl(url);
+	      var newDate = undefined;
+	      var urlKey = undefined;
+
+	      if (urlSearch) {
+	        newDate = urlSearch.date;
+	        urlKey = urlSearch.url;
+	        console.log('SubmittedUrls: Updating old entry ' + urlKey);
+	      } else {
+	        newDate = new Date();
+	        urlKey = lookupUrl;
+	        console.log('SubmittedUrls: Storing new entry ' + urlKey);
+	      }
+
+	      this.data[urlKey] = {
+	        'weight': weight,
+	        'date': newDate
+	      };
+
+	      this.storeSubmittedUrls();
+	    }
+	  }, {
+	    key: 'getDetailsOfUrl',
+	    value: function getDetailsOfUrl(url) {
+	      var urlRepresentations = this.getUrlVariations(url);
+
+	      for (var i = 0; i < urlRepresentations.length; i++) {
+	        if (this.data[urlRepresentations[i]]) {
+	          var elem = this.data[urlRepresentations[i]];
+	          return {
+	            'url': urlRepresentations[i],
+	            'weight': elem.weight,
+	            'date': elem.date
+	          };
+	        }
+	      }
+	      return null;
+	    }
+	  }, {
+	    key: 'expireSubmittedUrls',
+	    value: function expireSubmittedUrls() {
+	      var currDate = new Date();
+	      var parsedDate = undefined;
+
+	      for (keyName in this.data) {
+	        if (this.data.hasOwnProperty(keyName)) {
+	          parsedDate = Date.parse(this.data[keyName].date);
+	          if (parsedDate < currDate + EXPIRY_TIME_MINUTES * 60 * 1000) {
+	            delete this.data[keyName];
+	          }
+	        }
+	      }
+	    }
+	  }, {
+	    key: 'storeSubmittedUrls',
+
+	    // Private
+	    value: function storeSubmittedUrls() {
+	      localStorage[SUBMITTED_URLS_STORAGE_KEY] = JSON.stringify(this.data);
+	    }
+	  }, {
+	    key: 'loadSubmittedUrls',
+	    value: function loadSubmittedUrls() {
+	      if (localStorage[SUBMITTED_URLS_STORAGE_KEY] === undefined) {
+	        return {};
+	      } else {
+	        return JSON.parse(localStorage[SUBMITTED_URLS_STORAGE_KEY]);
+	      }
+	    }
+	  }, {
+	    key: 'getUrlVariations',
+	    value: function getUrlVariations(url) {
+	      var ur = new _UrlVariation2['default'](url.toLowerCase());
+	      var urlRepresentations = ur.getAllUrlRepresentations();
+
+	      if (!urlRepresentations || urlRepresentations.length === 0) {
+	        return null;
+	      }
+	      return urlRepresentations;
 	    }
 	  }]);
 

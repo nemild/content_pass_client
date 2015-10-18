@@ -11,16 +11,19 @@ export default class {
   // Date is stored in Unix time
   setSubmittedUrl(url, weight) {
     // strip lookup URL - no query parameters, no id
-    const lookupUrl = this.getDetailsOfUrl(url);
+    const lookupUrl = UrlVariation.stripUrl(url);
+    const urlSearch = this.getDetailsOfUrl(url);
     let newDate;
     let urlKey;
 
-    if ( lookupUrl.weight === null) {
-      newDate = new Date;
-      urlKey = lookupUrl.url;
+    if (urlSearch) {
+      newDate = urlSearch.date;
+      urlKey = urlSearch.url;
+      console.log('SubmittedUrls: Updating old entry ' + urlKey);
     } else {
-      newDate = lookupUrl.date;
-      urlKey = url;
+      newDate = new Date;
+      urlKey = lookupUrl;
+      console.log('SubmittedUrls: Storing new entry ' + urlKey);
     }
 
     this.data[urlKey] = {
@@ -44,15 +47,7 @@ export default class {
         };
       }
     }
-    return {
-      'url': null,
-      'weight': null,
-      'date': null
-    };
-  }
-
-  storeSubmittedUrls() {
-    localStorage[SUBMITTED_URLS_STORAGE_KEY] = JSON.stringify(this.data);
+    return null;
   }
 
   expireSubmittedUrls() {
@@ -70,6 +65,10 @@ export default class {
   }
 
   // Private
+  storeSubmittedUrls() {
+    localStorage[SUBMITTED_URLS_STORAGE_KEY] = JSON.stringify(this.data);
+  }
+
   loadSubmittedUrls() {
     if (localStorage[SUBMITTED_URLS_STORAGE_KEY] === undefined) {
       return {};

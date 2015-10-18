@@ -6,6 +6,10 @@ var _ProviderStore = require('./ProviderStore');
 
 var _ProviderStore2 = _interopRequireDefault(_ProviderStore);
 
+var _SubmittedUrlStore = require('./SubmittedUrlStore');
+
+var _SubmittedUrlStore2 = _interopRequireDefault(_SubmittedUrlStore);
+
 var dropDown = undefined;
 var loginForm = undefined;
 var providerSection = undefined;
@@ -21,13 +25,10 @@ var bgPage = undefined;
 var runtime = undefined;
 
 function cleanDate(date) {
-  bgPage.console.log(date);
-  // bgPage.console.log('here');
   if (date) {
-    var _cleanDate = new Date(date);
-    return _cleanDate.toLocaleDateString() + ' ' + _cleanDate.toLocaleTimeString();
+    var parsedDate = new Date(date);
+    return parsedDate.toLocaleDateString() + ' ' + parsedDate.toLocaleTimeString();
   }
-
   return '';
 }
 
@@ -45,7 +46,7 @@ function configureLoggedInState() {
   $('#updated_indicator_frame').show();
   $('footer.links').show();
 
-  $('#logged_in_frame #show-providers').on('click', function () {
+  $('#logged_in_frame #show-providers').on('click', function handleShowProviders() {
     configureListProvidersPage();
   });
 }
@@ -68,7 +69,7 @@ function configureListProvidersPage() {
   $('#last_updated_frame').hide();
   $('#logged_in_frame').hide();
   $('#updated_indicator_frame').hide();
-  $('#provider-section #provider-edit-done').on('click', function () {
+  $('#provider-section #provider-edit-done').on('click', function handleProviderViewDone() {
     providerSection.style.display = 'none';
     configureLoggedInState();
     $('#provider-section .a-provider').remove();
@@ -84,21 +85,27 @@ function configureListProvidersPage() {
     }
   }
 
-  $('#provider-section .remove').on('click', function (e) {
+  $('#provider-section .remove').on('click', function handleRemoveProviderAction(e) {
     // bgPage.console.log('Remove slug' + $(this).parents('tr'));
     runtime.sendMessage({
       'message': REMOVE_PROVIDER_MESSAGE,
       'provider_slug': $(this).data('slug')
-    }, function (response) {});
-    $(this).parents('tr').fadeOut(500, function () {
+    }, function callback(response) {});
+    $(this).parents('tr').fadeOut(500, function removeProviderDisplay() {
       $(this).remove();
     });
   });
 }
 
-function determineCurrentTabHistory() {
-  chrome.tabs.getCurrent(function (tab) {
-    console.log(tab.url);
+function determineCurrentTabUrl() {
+  chrome.tabs.getSelected(null, function (tab) {
+    if (tab && tab.url) {
+      var submittedStore = new _SubmittedUrlStore2['default']();
+      var search = submittedStore.getDetailsOfUrl(tab.url);
+      if (search) {
+        $('.content-pass-single-action[data-weight="' + search.weight.toString() + '"]').addClass('selected');
+      }
+    }
   });
 }
 
@@ -113,10 +120,10 @@ function toggleTracking() {
 function setTrackingIndicator(set_on) {
   var $auto_tracking = $('#auto_tracking');
   if (set_on === true || set_on === undefined) {
-    $auto_tracking.html('Tracking<br />On');
+    $auto_tracking.html('Auto Submission<br />On');
     $auto_tracking.removeClass('btn-danger').addClass('btn-success');
   } else if (set_on === false) {
-    $auto_tracking.html('Tracking<br />Off');
+    $auto_tracking.html('Auto Submission<br />Off');
     $auto_tracking.addClass('btn-danger').removeClass('btn-success');
   }
 }
@@ -154,9 +161,10 @@ function hideUpdatedIndicatorError() {
   $('#updated_indicator_error').fadeOut(500);
 }
 
-document.addEventListener('DOMContentLoaded', function loadPage() {
+document.addEventListener('DOMContentLoaded', function documentReady() {
   bgPage = chrome.extension.getBackgroundPage();
   runtime = chrome.runtime;
+  determineCurrentTabUrl();
 
   dropDown = document.getElementById('multiplier_selector');
   loginForm = document.forms.login;
@@ -171,14 +179,17 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
   }
 
   $('#provider-section .add').on('click', function (e) {
+    var addString = $('#provider-section input[type="text"]').val();
+    if (addString) {
+      runtime.sendMessage({
+        'message': ADD_PROVIDER_MESSAGE,
+        'provider_slug': addString
+      }, function (response) {
+        configureListProvidersPage();
+      });
+      $('#provider-section input[type="text"]').val('');
+    }
     e.preventDefault();
-    $('#provider-section input[type="text"]').val('');
-    runtime.sendMessage({
-      'message': ADD_PROVIDER_MESSAGE,
-      'provider_slug': $('#provider-section input[type="text"]').val()
-    }, function (response) {
-      configureListProvidersPage();
-    });
   });
 
   $('#logout').on('click', function logout(e) {

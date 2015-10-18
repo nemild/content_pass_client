@@ -1,4 +1,5 @@
 import ProviderStore from './ProviderStore';
+import SubmittedUrlStore from './SubmittedUrlStore';
 
 let dropDown;
 let loginForm;
@@ -15,13 +16,10 @@ let bgPage;
 let runtime;
 
 function cleanDate(date) {
-  bgPage.console.log(date);
-  // bgPage.console.log('here');
   if (date) {
-    const cleanDate = new Date(date);
-    return cleanDate.toLocaleDateString() + ' ' + cleanDate.toLocaleTimeString();
+    const parsedDate = new Date(date);
+    return parsedDate.toLocaleDateString() + ' ' + parsedDate.toLocaleTimeString();
   }
-
   return '';
 }
 
@@ -39,7 +37,7 @@ function configureLoggedInState() {
   $('#updated_indicator_frame').show();
   $('footer.links').show();
 
-  $('#logged_in_frame #show-providers').on('click', function() {
+  $('#logged_in_frame #show-providers').on('click', function handleShowProviders() {
     configureListProvidersPage();
   });
 }
@@ -62,7 +60,7 @@ function configureListProvidersPage() {
   $('#last_updated_frame').hide();
   $('#logged_in_frame').hide();
   $('#updated_indicator_frame').hide();
-  $('#provider-section #provider-edit-done').on('click', function() {
+  $('#provider-section #provider-edit-done').on('click', function handleProviderViewDone() {
     providerSection.style.display = 'none';
     configureLoggedInState();
     $('#provider-section .a-provider').remove();
@@ -80,27 +78,32 @@ function configureListProvidersPage() {
     }
   }
 
-  $('#provider-section .remove').on('click', function(e) {
+  $('#provider-section .remove').on('click', function handleRemoveProviderAction(e) {
     // bgPage.console.log('Remove slug' + $(this).parents('tr'));
     runtime.sendMessage({
       'message': REMOVE_PROVIDER_MESSAGE,
       'provider_slug': $(this).data('slug')
     },
-    function (response) {}
+    function callback(response) {}
                        );
-    $(this).parents('tr').fadeOut(500, function() { $(this).remove(); });
+    $(this).parents('tr').fadeOut(500, function removeProviderDisplay() { $(this).remove(); });
   });
 }
 
-function determineCurrentTabHistory() {
-  chrome.tabs.getCurrent(function(tab) {
-    console.log(tab.url);
+function determineCurrentTabUrl() {
+  chrome.tabs.getSelected(null,function(tab) {
+    if(tab && tab.url) {
+      let submittedStore = new SubmittedUrlStore();
+      let search = submittedStore.getDetailsOfUrl(tab.url);
+      if (search) {
+        $('.content-pass-single-action[data-weight="' + search.weight.toString() + '"]').addClass('selected');
+      }
+    }
   });
 }
 
 function toggleTracking() {
-  runtime.sendMessage(
-    {
+  runtime.sendMessage({
       'message': TOGGLE_ENABLED_MESSAGE
     },
     function handleToggleTracking(response) {
@@ -111,10 +114,10 @@ function toggleTracking() {
 function setTrackingIndicator(set_on) {
   let $auto_tracking = $('#auto_tracking');
   if (set_on === true || set_on === undefined) {
-    $auto_tracking.html('Tracking<br />On');
+    $auto_tracking.html('Auto Submission<br />On');
     $auto_tracking.removeClass('btn-danger').addClass('btn-success');
   } else if (set_on === false) {
-    $auto_tracking.html('Tracking<br />Off');
+    $auto_tracking.html('Auto Submission<br />Off');
     $auto_tracking.addClass('btn-danger').removeClass('btn-success');
   }
 }
@@ -155,9 +158,10 @@ function hideUpdatedIndicatorError() {
   $('#updated_indicator_error').fadeOut(500);
 }
 
-document.addEventListener('DOMContentLoaded', function loadPage() {
+document.addEventListener('DOMContentLoaded', function documentReady() {
   bgPage = chrome.extension.getBackgroundPage();
   runtime = chrome.runtime;
+  determineCurrentTabUrl();
 
   dropDown = document.getElementById('multiplier_selector');
   loginForm = document.forms.login;
@@ -172,15 +176,19 @@ document.addEventListener('DOMContentLoaded', function loadPage() {
   }
 
   $('#provider-section .add').on('click', function(e) {
-    e.preventDefault();
-    $('#provider-section input[type="text"]').val('');
-    runtime.sendMessage({
+    const addString = $('#provider-section input[type="text"]').val();
+    if (addString) {
+      runtime.sendMessage({
         'message': ADD_PROVIDER_MESSAGE,
-        'provider_slug': $('#provider-section input[type="text"]').val()
+        'provider_slug': addString
       },
-      function (response) {configureListProvidersPage(); }
-    );
+      function (response) {configureListProvidersPage(); });
+      $('#provider-section input[type="text"]').val('');
+    }
+    e.preventDefault();
+
   });
+
 
   $('#logout').on('click', function logout(e) {
     e.preventDefault();

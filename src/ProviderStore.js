@@ -30,7 +30,8 @@ export default class {
   }
 
   // Run all updates
-  updateAllTopUrlsForProviders(providerList = null) {
+  updateAllTopUrlsForProviders(providerListInit = null) {
+    let providerList = providerListInit;
     if (!providerList) {
       this.instantiateProvidersList();
       providerList = this.providersList;
