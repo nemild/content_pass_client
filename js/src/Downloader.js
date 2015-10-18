@@ -11,7 +11,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var HN_PROVIDER_BASE_URL = 'https://news.ycombinator.com/';
 var HN_PROVIDER_PAGE_RELATIVE_URL = 'news?p=';
-var HN_MAX_NUM_PAGES = 5;
+var HN_MAX_NUM_PAGES = 4;
 
 var HN_PROVIDER_SLUG = 'hackernews';
 var HN_DICT_URLS_TEMP_KEY = HN_PROVIDER_SLUG + '_' + 'newUrls';

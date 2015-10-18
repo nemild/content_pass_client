@@ -1,7 +1,7 @@
 // Hacker News Constants
 const HN_PROVIDER_BASE_URL = 'https://news.ycombinator.com/';
 const HN_PROVIDER_PAGE_RELATIVE_URL = 'news?p=';
-const HN_MAX_NUM_PAGES = 5;
+const HN_MAX_NUM_PAGES = 4;
 
 const HN_PROVIDER_SLUG = 'hackernews';
 const HN_DICT_URLS_TEMP_KEY = HN_PROVIDER_SLUG + '_' + 'newUrls';

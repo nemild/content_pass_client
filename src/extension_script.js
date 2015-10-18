@@ -169,7 +169,7 @@ function setAndExpireUrlStore(url, weight) {
   let sus = null;
   if (url && (weight || weight === 0)) {
     sus = new SubmittedUrlStore();
-    sus.setSubmittedUrl(url, multiplier);
+    sus.setSubmittedUrl(url, weight);
   }
 
   if(!localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE] || new Date(localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE]) + MINS_BETWEEN_SUBMITTED_EXPIRATION_CALLS * 60 * 1000 < (new Date) ) {

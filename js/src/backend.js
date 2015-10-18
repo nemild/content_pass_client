@@ -226,7 +226,7 @@
 	  var sus = null;
 	  if (url && (weight || weight === 0)) {
 	    sus = new _SubmittedUrlStore2['default']();
-	    sus.setSubmittedUrl(url, multiplier);
+	    sus.setSubmittedUrl(url, weight);
 	  }
 
 	  if (!localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE] || new Date(localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE]) + MINS_BETWEEN_SUBMITTED_EXPIRATION_CALLS * 60 * 1000 < new Date()) {
@@ -816,7 +816,7 @@
 
 	var HN_PROVIDER_BASE_URL = 'https://news.ycombinator.com/';
 	var HN_PROVIDER_PAGE_RELATIVE_URL = 'news?p=';
-	var HN_MAX_NUM_PAGES = 5;
+	var HN_MAX_NUM_PAGES = 4;
 
 	var HN_PROVIDER_SLUG = 'hackernews';
 	var HN_DICT_URLS_TEMP_KEY = HN_PROVIDER_SLUG + '_' + 'newUrls';
@@ -976,11 +976,11 @@
 	      if (urlSearch) {
 	        newDate = urlSearch.date;
 	        urlKey = urlSearch.url;
-	        console.log('SubmittedUrls: Updating old entry ' + urlKey);
+	        // console.log('SubmittedUrls: Updating old entry ' + urlKey);
 	      } else {
 	        newDate = new Date();
 	        urlKey = lookupUrl;
-	        console.log('SubmittedUrls: Storing new entry ' + urlKey);
+	        // console.log('SubmittedUrls: Storing new entry ' + urlKey);
 	      }
 
 	      this.data[urlKey] = {
@@ -1013,7 +1013,7 @@
 	      var currDate = new Date();
 	      var parsedDate = undefined;
 
-	      for (keyName in this.data) {
+	      for (var keyName in this.data) {
 	        if (this.data.hasOwnProperty(keyName)) {
 	          parsedDate = Date.parse(this.data[keyName].date);
 	          if (parsedDate < currDate + EXPIRY_TIME_MINUTES * 60 * 1000) {

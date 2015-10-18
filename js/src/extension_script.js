@@ -180,7 +180,7 @@ function setAndExpireUrlStore(url, weight) {
   var sus = null;
   if (url && (weight || weight === 0)) {
     sus = new _SubmittedUrlStore2['default']();
-    sus.setSubmittedUrl(url, multiplier);
+    sus.setSubmittedUrl(url, weight);
   }
 
   if (!localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE] || new Date(localStorage[LAST_EXPIRED_SUBMITTED_URL_STORE]) + MINS_BETWEEN_SUBMITTED_EXPIRATION_CALLS * 60 * 1000 < new Date()) {

@@ -166,10 +166,10 @@
 	function setTrackingIndicator(set_on) {
 	  var $auto_tracking = $('#auto_tracking');
 	  if (set_on === true || set_on === undefined) {
-	    $auto_tracking.html('Auto Submission<br />On');
+	    $auto_tracking.html('Auto<br />Submission On');
 	    $auto_tracking.removeClass('btn-danger').addClass('btn-success');
 	  } else if (set_on === false) {
-	    $auto_tracking.html('Auto Submission<br />Off');
+	    $auto_tracking.html('Auto<br />Submission Off');
 	    $auto_tracking.addClass('btn-danger').removeClass('btn-success');
 	  }
 	}
@@ -767,7 +767,7 @@
 
 	var HN_PROVIDER_BASE_URL = 'https://news.ycombinator.com/';
 	var HN_PROVIDER_PAGE_RELATIVE_URL = 'news?p=';
-	var HN_MAX_NUM_PAGES = 5;
+	var HN_MAX_NUM_PAGES = 4;
 
 	var HN_PROVIDER_SLUG = 'hackernews';
 	var HN_DICT_URLS_TEMP_KEY = HN_PROVIDER_SLUG + '_' + 'newUrls';
@@ -927,11 +927,11 @@
 	      if (urlSearch) {
 	        newDate = urlSearch.date;
 	        urlKey = urlSearch.url;
-	        console.log('SubmittedUrls: Updating old entry ' + urlKey);
+	        // console.log('SubmittedUrls: Updating old entry ' + urlKey);
 	      } else {
 	        newDate = new Date();
 	        urlKey = lookupUrl;
-	        console.log('SubmittedUrls: Storing new entry ' + urlKey);
+	        // console.log('SubmittedUrls: Storing new entry ' + urlKey);
 	      }
 
 	      this.data[urlKey] = {
@@ -964,7 +964,7 @@
 	      var currDate = new Date();
 	      var parsedDate = undefined;
 
-	      for (keyName in this.data) {
+	      for (var keyName in this.data) {
 	        if (this.data.hasOwnProperty(keyName)) {
 	          parsedDate = Date.parse(this.data[keyName].date);
 	          if (parsedDate < currDate + EXPIRY_TIME_MINUTES * 60 * 1000) {

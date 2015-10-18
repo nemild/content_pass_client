@@ -216,8 +216,8 @@ body {
 #updated_indicator_frame {
   display: none;
   height: 5px;
-  padding-bottom: 15px;
-  padding-top: 10px;
+  padding-bottom: 5px;
+  padding-top: 5px;
 }
 
 .loading-frame {
@@ -255,9 +255,14 @@ body {
   cursor: pointer;
 }
 
+
 #provider-section #add-provider-text {
   width: 60%;
   display: inline-block;
+}
+
+#provider-section .add-provider-label {
+  font-weight:bold;
 }
 
 #provider-section .add {

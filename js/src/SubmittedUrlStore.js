@@ -38,11 +38,11 @@ var _default = (function () {
       if (urlSearch) {
         newDate = urlSearch.date;
         urlKey = urlSearch.url;
-        console.log('SubmittedUrls: Updating old entry ' + urlKey);
+        // console.log('SubmittedUrls: Updating old entry ' + urlKey);
       } else {
         newDate = new Date();
         urlKey = lookupUrl;
-        console.log('SubmittedUrls: Storing new entry ' + urlKey);
+        // console.log('SubmittedUrls: Storing new entry ' + urlKey);
       }
 
       this.data[urlKey] = {
@@ -75,7 +75,7 @@ var _default = (function () {
       var currDate = new Date();
       var parsedDate = undefined;
 
-      for (keyName in this.data) {
+      for (var keyName in this.data) {
         if (this.data.hasOwnProperty(keyName)) {
           parsedDate = Date.parse(this.data[keyName].date);
           if (parsedDate < currDate + EXPIRY_TIME_MINUTES * 60 * 1000) {

@@ -114,10 +114,10 @@ function toggleTracking() {
 function setTrackingIndicator(set_on) {
   let $auto_tracking = $('#auto_tracking');
   if (set_on === true || set_on === undefined) {
-    $auto_tracking.html('Auto Submission<br />On');
+    $auto_tracking.html('Auto<br />Submission On');
     $auto_tracking.removeClass('btn-danger').addClass('btn-success');
   } else if (set_on === false) {
-    $auto_tracking.html('Auto Submission<br />Off');
+    $auto_tracking.html('Auto<br />Submission Off');
     $auto_tracking.addClass('btn-danger').removeClass('btn-success');
   }
 }

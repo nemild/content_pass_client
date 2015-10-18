@@ -19,11 +19,11 @@ export default class {
     if (urlSearch) {
       newDate = urlSearch.date;
       urlKey = urlSearch.url;
-      console.log('SubmittedUrls: Updating old entry ' + urlKey);
+      // console.log('SubmittedUrls: Updating old entry ' + urlKey);
     } else {
       newDate = new Date;
       urlKey = lookupUrl;
-      console.log('SubmittedUrls: Storing new entry ' + urlKey);
+      // console.log('SubmittedUrls: Storing new entry ' + urlKey);
     }
 
     this.data[urlKey] = {
@@ -54,7 +54,7 @@ export default class {
     const currDate = new Date;
     let parsedDate;
 
-    for (keyName in this.data) {
+    for (let keyName in this.data) {
       if (this.data.hasOwnProperty(keyName)) {
         parsedDate = Date.parse(this.data[keyName].date);
         if (parsedDate < currDate + (EXPIRY_TIME_MINUTES * 60 * 1000)) {

@@ -22,9 +22,9 @@
         <div class='header'>HN Top Posts Last Updated</div>
         <div id='last_updated_data'></div>
       </div>
-      <div class='center'><div class='btn btn-success' id='auto_tracking'>Auto Submission<br />On</div></div>
+      <div class='center'><div class='btn btn-success' id='auto_tracking'>Auto<br />Submission On</div></div>
       <br />
-      <div id='show-providers'>Auto Submission Preferences</div>
+      <div id='show-providers'>Auto Submission<br />Preferences</div>
     </section>
 
     <section class="loginform cf">
@@ -71,7 +71,7 @@
     </div>
     <div id='provider-section'>
       <div>
-        We restrict the sites that are automatically sent to our server based on the communities you value. For now, we support the current top 100 or so posts on <a href='https://news.ycombinator.com'>Hacker News</a> and any subreddit:</div>
+        We restrict the sites that are automatically sent to our server to the current top 100 or so posts on <a href='https://news.ycombinator.com'>Hacker News</a> and any subreddit:</div>
       <table class='table provider-table'>
         <tr>
           <th>Site</th>
@@ -80,7 +80,10 @@
         </tr>
       </table>
       <div>
-        <input id='add-provider-text' type='text' placeholder='Provider' class='form-control' style='font-size:14px; padding:7px;' required>
+        <br />
+        <label for='add-provider-text' class='add-provider-label'>Add a subreddit</label>
+        <div>Prepend subreddit name with <i>reddit_</i></div>
+        <input name='add-provider-text' id='add-provider-text' type='text' placeholder='reddit_SUBREDDIT' class='form-control' style='font-size:14px; padding:7px;' required>
         <div class='add btn btn-primary btn-sm'>Add</div>
       </div>
       <br />
