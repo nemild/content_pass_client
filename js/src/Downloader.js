@@ -18,7 +18,7 @@ var HN_DICT_URLS_TEMP_KEY = HN_PROVIDER_SLUG + '_' + 'newUrls';
 
 // Reddit
 var REDDIT_PROVIDER_BASE_URL = 'https://www.reddit.com/r/';
-var REDDIT_PROVIDER_RELATIVE_URL = '/hot.json?&show=all&limit=';
+var REDDIT_PROVIDER_RELATIVE_URL = '/top.json?&show=all&limit=';
 var REDDIT_NUM_POSTS = 100; // Max is a 100, larger requires pagination
 
 var _default = (function () {
