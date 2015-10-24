@@ -21,7 +21,7 @@ export default class {
     }
 
     // TODO: Change data structure to {}, to speed up lookups
-    for (let i = 0; i < urlRepresentations.length; i++) {
+    for (let i = 0, length = urlRepresentations.length; i < length; i++) {
       if (urlArr.indexOf(urlRepresentations[i]) !== -1) {
         return true;
       }

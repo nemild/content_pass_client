@@ -37,7 +37,7 @@ export default class {
   getDetailsOfUrl(url) {
     const urlRepresentations = this.getUrlVariations(url);
 
-    for (let i = 0; i < urlRepresentations.length; i++) {
+    for (let i = 0, length = urlRepresentations.length; i < length; i++) {
       if (this.data[ urlRepresentations[i] ]) {
         const elem = this.data[urlRepresentations[i]];
         return {

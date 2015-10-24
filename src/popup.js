@@ -60,6 +60,8 @@ function configureListProvidersPage() {
   $('#last_updated_frame').hide();
   $('#logged_in_frame').hide();
   $('#updated_indicator_frame').hide();
+  $('#provider-section .a-provider').remove();
+
   $('#provider-section #provider-edit-done').on('click', function handleProviderViewDone() {
     providerSection.style.display = 'none';
     configureLoggedInState();

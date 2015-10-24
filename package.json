@@ -11,6 +11,8 @@
   "dependencies": {},
   "devDependencies": {
     "babel": "^5.8.23",
+    "babel-core": "^5.8.25",
+    "babel-loader": "^5.3.2",
     "chai": "^3.3.0",
     "mocha": "^2.3.3",
     "mock-local-storage": "^1.0.2",
